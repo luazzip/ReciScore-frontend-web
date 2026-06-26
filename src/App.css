@@ -552,19 +552,46 @@ section {
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--gray-200);
 }
-.desafio-card h4 {
+.desafio-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+.desafio-card-header h4 {
   font-weight: 600;
   font-size: 1.0625rem;
   color: var(--gray-800);
+  margin: 0;
 }
 .desafio-card p {
   font-size: 0.875rem;
   color: var(--gray-500);
-  margin: 0.25rem 0 0.75rem;
+  margin: 0.25rem 0;
 }
-.desafio-card > span {
+.desafio-meta {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--gray-400);
+  margin-bottom: 0.5rem;
+}
+.desafio-progreso {
   font-size: 0.8125rem;
   color: var(--gray-500);
+}
+.desafio-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--gray-100);
+}
+.desafio-puntos {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--green-600);
 }
 
 .progress-bar {
@@ -580,6 +607,12 @@ section {
   background: linear-gradient(90deg, var(--green-500), var(--green-600));
   border-radius: 999px;
   transition: width 0.4s ease;
+}
+
+.btn-sm {
+  padding: 0.375rem 0.875rem;
+  font-size: 0.8125rem;
+  width: auto;
 }
 
 /* --- MAPA PUNTOS --- */

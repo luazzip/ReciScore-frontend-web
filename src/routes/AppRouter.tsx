@@ -11,6 +11,7 @@ const ReciclajePage = lazy(() => import('../pages/ReciclajePage'));
 const HistorialPage = lazy(() => import('../pages/HistorialPage'));
 const MapaPage = lazy(() => import('../pages/MapaPage'));
 const DesafiosPage = lazy(() => import('../pages/DesafiosPage'));
+const DesafioDetallePage = lazy(() => import('../pages/DesafioDetallePage'));
 const RankingPage = lazy(() => import('../pages/RankingPage'));
 const PerfilPage = lazy(() => import('../pages/PerfilPage'));
 const NotFoundPage = lazy(() => import('../pages/NotFoundPage'));
@@ -33,6 +34,7 @@ export default function AppRouter() {
               <Route path="/reciclaje/historial" element={<HistorialPage />} />
               <Route path="/reciclaje/historial/:reporteId" element={<HistorialPage />} />
               <Route path="/desafios" element={<DesafiosPage />} />
+              <Route path="/desafios/:id" element={<DesafioDetallePage />} />
               <Route path="/perfil" element={<PerfilPage />} />
             </Route>
           </Route>

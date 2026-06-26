@@ -8,6 +8,7 @@ export interface Desafio {
   fecha_inicio: string;
   fecha_fin: string;
   activo: boolean;
+  inscrito?: boolean;
 }
 
 export interface UsuarioDesafio {
