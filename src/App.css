@@ -1070,3 +1070,21 @@ section hr { border: none; border-top: 1px solid var(--gray-200); margin: 1.5rem
 
 /* Auth pages sin sidebar */
 .auth-split { margin-left: 0 !important; }
+
+/* --- RANKING LAYOUT --- */
+.ranking-layout {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.ranking-left { min-width: 0; }
+.ranking-right { position: sticky; top: 1rem; }
+
+.reciclaje-register-layout {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 1.5rem;
+  align-items: start;
+}

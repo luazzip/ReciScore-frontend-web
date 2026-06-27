@@ -7,6 +7,7 @@ const navItems = [
   { to: '/mapa', label: 'Mapa', icon: '⊞' },
   { to: '/ranking', label: 'Ranking', icon: '▐' },
   { to: '/reciclaje/historial', label: 'Historial', icon: '↺' },
+  { to: '/marketplace', label: 'Marketplace', icon: '🛍' },
 ];
 
 export default function Sidebar() {
