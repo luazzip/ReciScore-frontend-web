@@ -44,17 +44,47 @@ export default function LoginForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate>
       <div className="form-field">
-        <label htmlFor="email">Email</label>
-        <input id="email" type="email" {...register('email')} />
+        <label className="form-label-upper" htmlFor="email">Correo Electrónico</label>
+        <div className="form-input-icon">
+          <input
+            id="email"
+            type="email"
+            placeholder="ejemplo@reciscore.com"
+            {...register('email')}
+          />
+        </div>
         {errors.email && <span className="field-error">{errors.email.message}</span>}
       </div>
+
       <div className="form-field">
-        <label htmlFor="password">Contraseña</label>
-        <input id="password" type="password" {...register('password')} />
+        <label className="form-label-upper" htmlFor="password">Contraseña</label>
+        <div className="form-input-icon">
+          <input
+            id="password"
+            type="password"
+            placeholder="••••••••"
+            {...register('password')}
+          />
+        </div>
         {errors.password && <span className="field-error">{errors.password.message}</span>}
       </div>
+
       <ErrorMessage error={submitError} />
-      <Button type="submit" isLoading={isSubmitting}>Iniciar sesión</Button>
+
+      <Button type="submit" isLoading={isSubmitting}>
+        Iniciar Sesión
+      </Button>
+
+      <div className="social-divider">O continúa con</div>
+
+      <div className="social-buttons">
+        <button type="button" className="social-btn">
+          <span>G</span> Google
+        </button>
+        <button type="button" className="social-btn">
+          <span>f</span> Facebook
+        </button>
+      </div>
     </form>
   );
 }
