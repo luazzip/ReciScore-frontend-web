@@ -21,4 +21,8 @@ export const mapaService = {
     const { data } = await axiosClient.post<ReporteZona>('/reportes-zona', payload, { signal });
     return data;
   },
+  async getReportesZona(signal?: AbortSignal): Promise<ReporteZona[]> {
+    const { data } = await axiosClient.get<ReporteZona[]>('/reportes-zona', { signal });
+    return data;
+  },
 };

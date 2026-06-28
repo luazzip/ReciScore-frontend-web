@@ -2,27 +2,50 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useFetch } from '../hooks/useFetch';
 import { rankingService } from '../services/rankingService';
-import RankingTable from '../components/ranking/RankingTable';
+import { useAuth } from '../hooks/useAuth';
 import RankingFilterByDistrito from '../components/ranking/RankingFilterByDistrito';
 import Skeleton from '../components/common/Skeleton';
 import ErrorMessage from '../components/common/ErrorMessage';
 import EmptyState from '../components/common/EmptyState';
-import { useAuth } from '../hooks/useAuth';
 
-const INSIGNIAS = [
-  { icon: '🌿', nombre: 'Guerrero del Plástico', desc: 'Registra 50kg de residuos plásticos', desbloqueada: true },
-  { icon: '👥', nombre: 'Núcleo Comunitario', desc: 'Invita a 3 amigos a unirse', desbloqueada: true },
-  { icon: '📅', nombre: 'Racha de 7 Días', desc: 'Registra entradas 7 días seguidos', desbloqueada: true },
-  { icon: '📋', nombre: 'Club de 100 Registros', desc: 'Llega a los 100 registros de reciclaje', desbloqueada: false },
-  { icon: '🏅', nombre: 'Élite de San Isidro', desc: 'Top 10 en el ranking del distrito', desbloqueada: false },
-  { icon: '🌲', nombre: 'Guardián del Bosque', desc: 'Compensa 1 tonelada de CO2', desbloqueada: false },
+const LEVEL_TITLES = [
+  { max: 10, title: 'Aprendiz Verde' },
+  { max: 20, title: 'Estrella Naciente' },
+  { max: 30, title: 'Maestro Upcycler' },
+  { max: 40, title: 'Leyenda Eco' },
+  { max: Infinity, title: 'Guardián del Planeta' },
 ];
+
+function getLevelTitle(nivel: number): string {
+  return LEVEL_TITLES.find(t => nivel <= t.max)?.title ?? 'Curador';
+}
 
 const DISTRITOS = [
-  { pos: 1, nombre: 'Miraflores', pts: '842,500', tuyo: false },
-  { pos: 2, nombre: 'San Isidro', pts: '798,210', tuyo: true },
-  { pos: 3, nombre: 'San Borja', pts: '654,100', tuyo: false },
+  { pos: 1, nombre: 'Miraflores', pts: '842,500', icon: 'park', tuyo: false },
+  { pos: 2, nombre: 'San Isidro', pts: '798,210', icon: 'location_on', tuyo: true },
+  { pos: 3, nombre: 'San Borja', pts: '654,100', icon: 'apartment', tuyo: false },
 ];
+
+function RankNumber({ pos, isUser }: { pos: number; isUser?: boolean }) {
+  if (pos === 1) {
+    return <span className="w-8 h-8 flex items-center justify-center rounded-full bg-tertiary-container text-on-tertiary-container font-black text-xs">1</span>;
+  }
+  if (isUser) {
+    return <span className="w-8 h-8 flex items-center justify-center rounded-full bg-primary text-on-primary font-black text-xs">{pos}</span>;
+  }
+  return <span className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-200 text-zinc-600 font-black text-xs">{pos}</span>;
+}
+
+function Avatar({ src, name, className = '' }: { src?: string | null; name: string; className?: string }) {
+  if (src) {
+    return <img alt={name} className={`w-10 h-10 rounded-full object-cover ${className}`} src={src} />;
+  }
+  return (
+    <div className={`w-10 h-10 rounded-full bg-primary flex items-center justify-center text-on-primary font-bold text-sm ${className}`}>
+      {name.charAt(0).toUpperCase()}
+    </div>
+  );
+}
 
 type Periodo = 'Semanal' | 'Histórico';
 
@@ -40,62 +63,112 @@ export default function RankingPage() {
     [distrito]
   );
 
+  const pointsNextLevel = 5000;
+  const pointsProgress = usuario ? Math.min(Math.round((usuario.points / pointsNextLevel) * 100), 100) : 0;
+  const pointsToNext = usuario ? pointsNextLevel - usuario.points : 5000;
+
   return (
-    <div>
-      {/* Hero title */}
-      <h1 className="ranking-hero-title">
-        Recicladores de <em>Élite.</em>
-      </h1>
+    <div className="max-w-6xl mx-auto space-y-8">
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="space-y-4 lg:col-span-12">
+          <h1 className="font-headline text-5xl md:text-7xl font-extrabold text-on-background leading-tight tracking-tight">
+            Recicladores de <span className="text-primary italic">Élite.</span>
+          </h1>
+        </div>
+      </section>
 
-      <div className="ranking-layout">
-        {/* LEFT COLUMN */}
-        <div className="ranking-left">
-
-          {/* Ranking amigos */}
-          <div className="card" style={{ marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h2 style={{ marginBottom: 0, fontSize: '1.25rem' }}>Ranking entre amigos 🏆</h2>
-              <span className="badge-ok">Semanal</span>
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <h2 className="font-headline text-2xl font-bold">Ranking entre amigos</h2>
+                <span className="text-2xl">🏆</span>
+              </div>
+              <div className="flex gap-2">
+                <button className="px-4 py-2 bg-primary text-on-primary text-xs font-bold rounded-full">Semanal</button>
+              </div>
             </div>
 
-            {isLoading && <Skeleton rows={3} />}
+            {isLoading && <Skeleton rows={5} />}
             {error && <ErrorMessage error={error} onRetry={refetch} />}
             {!isLoading && !error && (!data || data.length === 0) && (
               <EmptyState title="Sin datos de ranking todavía" />
             )}
+
             {!isLoading && !error && data && data.length > 0 && (
-              <RankingTable entries={data} />
+              <div className="bg-surface-container-lowest rounded-lg overflow-hidden border border-outline-variant/10">
+                <div className="grid grid-cols-12 px-6 py-4 bg-surface-container-low text-on-surface-variant text-[10px] uppercase font-bold tracking-widest border-b border-outline-variant/10">
+                  <div className="col-span-1">NRO</div>
+                  <div className="col-span-6">Usuario</div>
+                  <div className="col-span-2 text-center">Nivel</div>
+                  <div className="col-span-3 text-right">Pts Impacto</div>
+                </div>
+                <div className="divide-y divide-surface-container">
+                  {data.map((e) => {
+                    const esYo = usuario && (e.userId === usuario.id || e.username === usuario.username);
+                    const title = getLevelTitle(e.nivel);
+                    return (
+                      <div
+                        key={e.posicion}
+                        className={`grid grid-cols-12 px-6 py-5 items-center transition-colors group ${
+                          esYo
+                            ? 'bg-primary-container/20 border-x-4 border-primary'
+                            : 'hover:bg-surface-container-low'
+                        }`}
+                      >
+                        <div className="col-span-1">
+                          <RankNumber pos={e.posicion} isUser={esYo} />
+                        </div>
+                        <div className="col-span-6 flex items-center gap-3">
+                          {esYo ? (
+                            <div className="relative">
+                              <Avatar src={usuario?.profilePicture} name={e.name ?? e.username} className="border-2 border-primary" />
+                              <span className="absolute -bottom-1 -right-1 bg-primary text-white text-[8px] px-1 rounded-full border border-surface">TÚ</span>
+                            </div>
+                          ) : (
+                            <Avatar name={e.name ?? e.username} />
+                          )}
+                          <div>
+                            <p className="font-bold text-on-surface">{e.name ?? e.username}</p>
+                            <p className="text-xs text-on-surface-variant italic">{title}</p>
+                          </div>
+                        </div>
+                        <div className="col-span-2 text-center font-headline font-bold text-secondary">LV. {e.nivel}</div>
+                        <div className="col-span-3 text-right font-headline font-black text-primary text-lg">
+                          {e.points.toLocaleString('es-PE')}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             )}
           </div>
 
-          {/* Ranking distritos */}
-          <div className="card">
-            <div style={{ marginBottom: '1rem' }}>
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
-                background: 'var(--green-50)', color: 'var(--green-700)',
-                fontSize: '0.75rem', fontWeight: 700, padding: '0.25rem 0.75rem',
-                borderRadius: 999, marginBottom: '0.75rem'
-              }}>
-                📍 DISTRITO: SAN ISIDRO
-              </span>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h2 style={{ marginBottom: 0, fontSize: '1.25rem' }}>Ranking por Distritos</h2>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  {(['Semanal', 'Histórico'] as Periodo[]).map(p => (
-                    <button
-                      key={p}
-                      onClick={() => setPeriodo(p)}
-                      style={{
-                        padding: '0.25rem 0.875rem', borderRadius: 999,
-                        border: periodo === p ? 'none' : '1px solid var(--gray-200)',
-                        background: periodo === p ? 'var(--green-700)' : 'var(--white)',
-                        color: periodo === p ? 'var(--white)' : 'var(--gray-600)',
-                        fontSize: '0.8125rem', fontWeight: 600, cursor: 'pointer'
-                      }}
-                    >{p}</button>
-                  ))}
-                </div>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full text-xs font-bold uppercase tracking-widest">
+                <span className="material-symbols-outlined text-xs">location_on</span>
+                Distrito: {distrito}
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <h2 className="font-headline text-2xl font-bold">Ranking por Distritos</h2>
+              <div className="flex gap-2">
+                {(['Semanal', 'Histórico'] as Periodo[]).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setPeriodo(p)}
+                    className={`px-4 py-2 text-xs font-bold rounded-full ${
+                      periodo === p
+                        ? 'bg-primary text-on-primary'
+                        : 'bg-surface-container text-on-surface'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -104,107 +177,77 @@ export default function RankingPage() {
               onChange={(d) => setSearchParams(d === 'Todos' ? {} : { distrito: d })}
             />
 
-            <table className="ranking-table" style={{ marginTop: '0.75rem' }}>
-              <thead>
-                <tr>
-                  <th>NRO</th>
-                  <th>DISTRITO</th>
-                  <th style={{ textAlign: 'right' }}>PUNTAJE TOTAL</th>
-                </tr>
-              </thead>
-              <tbody>
+            <div className="bg-surface-container-lowest rounded-lg overflow-hidden border border-outline-variant/10">
+              <div className="grid grid-cols-12 px-6 py-4 bg-surface-container-low text-on-surface-variant text-[10px] uppercase font-bold tracking-widest border-b border-outline-variant/10">
+                <div className="col-span-1">NRO</div>
+                <div className="col-span-7">Distrito</div>
+                <div className="col-span-4 text-right">Puntaje Total</div>
+              </div>
+              <div className="divide-y divide-surface-container">
                 {DISTRITOS.map(d => (
-                  <tr key={d.nombre} style={d.tuyo ? { background: 'var(--green-50)' } : {}}>
-                    <td>
-                      <span style={{
-                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                        width: 28, height: 28, borderRadius: '50%',
-                        background: d.pos === 1 ? '#fbbf24' : d.tuyo ? 'var(--green-600)' : 'var(--gray-200)',
-                        color: d.pos === 1 || d.tuyo ? 'white' : 'var(--gray-600)',
-                        fontWeight: 700, fontSize: '0.8125rem'
-                      }}>{d.pos}</span>
-                    </td>
-                    <td>
-                      <strong>{d.nombre}</strong>
-                      {d.tuyo && <div style={{ fontSize: '0.75rem', color: 'var(--green-600)', fontWeight: 600 }}>TUDISTRITO</div>}
-                    </td>
-                    <td style={{ textAlign: 'right' }} className="ranking-pts">{d.pts}</td>
-                  </tr>
+                  <div
+                    key={d.nombre}
+                    className={`grid grid-cols-12 px-6 py-5 items-center ${
+                      d.tuyo ? 'bg-primary-container/20 border-x-4 border-primary' : 'hover:bg-surface-container-low transition-colors'
+                    }`}
+                  >
+                    <div className="col-span-1">
+                      <RankNumber pos={d.pos} isUser={d.tuyo} />
+                    </div>
+                    <div className="col-span-7 flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                        d.tuyo ? 'bg-primary-container text-primary-dim' : 'bg-green-100 text-green-700'
+                      }`}>
+                        <span className="material-symbols-outlined">{d.icon}</span>
+                      </div>
+                      {d.tuyo ? (
+                        <div>
+                          <p className="font-bold text-on-surface">{d.nombre}</p>
+                          <p className="text-[10px] text-primary uppercase font-bold tracking-tight">Tu Distrito</p>
+                        </div>
+                      ) : (
+                        <p className="font-bold text-on-surface">{d.nombre}</p>
+                      )}
+                    </div>
+                    <div className="col-span-4 text-right font-headline font-black text-primary text-lg">{d.pts}</div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Insignias */}
-          <div style={{ marginTop: '1.5rem' }}>
-            <h2 style={{ marginBottom: '0.25rem' }}>Mis Insignias</h2>
-            <p style={{ color: 'var(--gray-500)', fontSize: '0.875rem', marginBottom: '1rem' }}>
-              Cada insignia representa un compromiso con nuestro planeta.
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-              {INSIGNIAS.map(ins => (
-                <div key={ins.nombre} className="card" style={{ textAlign: 'center', opacity: ins.desbloqueada ? 1 : 0.5 }}>
-                  <div style={{
-                    width: 48, height: 48, borderRadius: '50%', margin: '0 auto 0.5rem',
-                    background: ins.desbloqueada ? 'var(--green-100)' : 'var(--gray-100)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem'
-                  }}>{ins.icon}</div>
-                  <div style={{ fontWeight: 700, fontSize: '0.875rem', marginBottom: '0.25rem' }}>{ins.nombre}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--gray-500)', marginBottom: '0.5rem' }}>{ins.desc}</div>
-                  <span className={ins.desbloqueada ? 'badge-ok' : 'badge-warning'} style={{ fontSize: '0.6875rem' }}>
-                    {ins.desbloqueada ? 'DESBLOQUEADA' : 'BLOQUEADA'}
-                  </span>
-                </div>
-              ))}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* RIGHT COLUMN — Tus Estadísticas */}
-        <div className="ranking-right">
-          <h2 style={{ marginBottom: '1rem', fontSize: '1.125rem' }}>Tus Estadísticas</h2>
+        <div className="space-y-6">
+          <h2 className="font-headline text-2xl font-bold">Tus Estadísticas</h2>
 
-          {/* Próximo rango */}
-          <div className="card" style={{ marginBottom: '1rem' }}>
-            <div style={{ fontSize: '0.75rem', color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.25rem' }}>
-              PRÓXIMO RANGO
+          <div className="bg-surface-container-high rounded-lg p-6 space-y-6 relative overflow-hidden">
+            <div className="relative z-10">
+              <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Próximo RANGO</p>
+              <h3 className="text-2xl font-black text-on-surface mt-1">Nivel {(usuario?.nivel ?? 14) + 1} Pro</h3>
+              <div className="mt-4 h-3 bg-surface-container rounded-full overflow-hidden">
+                <div className="h-full bg-primary shadow-[inset_0_1px_3px_rgba(255,255,255,0.3)]" style={{ width: `${pointsProgress}%` }} />
+              </div>
+              <p className="text-xs text-on-surface-variant mt-2 text-right">{pointsToNext.toLocaleString()} pts para subir de nivel</p>
             </div>
-            <div style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.75rem' }}>
-              Nivel {(usuario?.nivel ?? 14) + 1} Pro
-            </div>
-            <div className="progress-bar" style={{ marginBottom: '0.5rem' }}>
-              <div className="progress-fill" style={{ width: '85%' }} />
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--gray-400)', textAlign: 'right' }}>
-              750 pts para subir de nivel
+            <div className="absolute -right-10 -bottom-10 opacity-10 rotate-12">
+              <span className="material-symbols-outlined text-[12rem]">eco</span>
             </div>
           </div>
 
-          {/* Stats grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
-            <div className="card" style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>♻️</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--gray-800)' }}>42kg</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Ahorrado</div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-surface-container-lowest p-4 rounded-lg flex flex-col items-center justify-center text-center">
+              <span className="material-symbols-outlined text-secondary mb-2" style={{ fontVariationSettings: '"FILL" 1' }}>recycling</span>
+              <p className="text-2xl font-black text-on-surface">{usuario?.reciclajes ?? 0} uds</p>
+              <p className="text-[10px] text-on-surface-variant uppercase tracking-widest font-bold">Total Reciclado</p>
             </div>
-            <div className="card" style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>🏅</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--gray-800)' }}>12</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Insignias</div>
+            <div className="bg-surface-container-lowest p-4 rounded-lg flex flex-col items-center justify-center text-center">
+              <span className="material-symbols-outlined text-tertiary mb-2" style={{ fontVariationSettings: '"FILL" 1' }}>token</span>
+              <p className="text-2xl font-black text-on-surface">{usuario?.points.toLocaleString() ?? 0}</p>
+              <p className="text-[10px] text-on-surface-variant uppercase tracking-widest font-bold">Puntos Totales</p>
             </div>
           </div>
-
-          {/* Canjear */}
-          <button style={{
-            width: '100%', padding: '0.75rem', background: '#f59e0b',
-            color: 'white', border: 'none', borderRadius: 999,
-            fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer',
-            textTransform: 'uppercase', letterSpacing: '0.04em'
-          }}>
-            Canjear Premios
-          </button>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

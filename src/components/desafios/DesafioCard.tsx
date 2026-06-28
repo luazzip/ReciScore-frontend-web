@@ -10,7 +10,7 @@ interface DesafioCardProps {
 }
 
 export default function DesafioCard({ usuarioDesafio, inscrito = false, onInscribirse, onDesistir }: DesafioCardProps) {
-  const { desafio, progresoActual, completado } = usuarioDesafio;
+  const { desafio, progresoActual } = usuarioDesafio;
   const navigate = useNavigate();
 
   const porcentaje = useMemo(

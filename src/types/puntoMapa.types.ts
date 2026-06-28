@@ -13,6 +13,7 @@ export interface ReporteZona {
   latitude: number;
   longitude: number;
   descripcion: string;
+  username: string;
 }
 
 export interface NuevoReporteZonaRequest {

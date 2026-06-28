@@ -1,4 +1,5 @@
 export interface RankingEntry {
+  userId: number;
   posicion: number;
   username: string;
   name: string;

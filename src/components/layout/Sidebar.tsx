@@ -2,69 +2,66 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 
 const navItems = [
-  { to: '/', label: 'Panel', icon: '▦' },
-  { to: '/reciclaje/nuevo', label: 'Registrar', icon: '+' },
-  { to: '/mapa', label: 'Mapa', icon: '⊞' },
-  { to: '/ranking', label: 'Ranking', icon: '▐' },
-  { to: '/reciclaje/historial', label: 'Historial', icon: '↺' },
-  { to: '/marketplace', label: 'Marketplace', icon: '🛍' },
+  { to: '/', label: 'Panel', icon: 'dashboard', end: true },
+  { to: '/reciclaje/nuevo', label: 'Registrar', icon: 'add_circle' },
+  { to: '/mapa', label: 'Mapa', icon: 'map' },
+  { to: '/ranking', label: 'Ranking', icon: 'leaderboard' },
+  { to: '/reciclaje/historial', label: 'Historial', icon: 'history' },
 ];
 
 export default function Sidebar() {
-  const { usuario, logout, isAuthenticated } = useAuth();
+  const { usuario, logout } = useAuth();
   const navigate = useNavigate();
 
-  function handleLogout() {
-    logout();
-    navigate('/login');
-  }
-
   return (
-    <aside className="sidebar">
-      <div className="sidebar-logo">
-        <span className="sidebar-logo-icon">♻</span>
-        <span className="sidebar-logo-text">ReciScore</span>
+    <aside className="fixed left-0 top-0 h-full flex flex-col p-4 z-40 bg-zinc-50 w-64 border-r-0 hidden md:flex">
+      <div className="mb-8 px-4 py-6">
+        <span className="text-2xl font-black text-green-800 font-headline">ReciScore</span>
       </div>
 
-      {isAuthenticated && usuario && (
-        <div className="sidebar-user">
-          <div className="sidebar-avatar">
-            {usuario.name.charAt(0).toUpperCase()}
+      {usuario && (
+        <div className="flex items-center gap-4 px-4 mb-10">
+          <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 bg-primary flex items-center justify-center text-on-primary font-bold text-lg">
+            {usuario.profilePicture ? (
+              <img src={usuario.profilePicture} alt={usuario.name} className="w-full h-full object-cover" />
+            ) : (
+              usuario.name.charAt(0).toUpperCase()
+            )}
           </div>
-          <div>
-            <div className="sidebar-username">{usuario.username}</div>
-            <div className="sidebar-level">Nivel {usuario.nivel}</div>
+          <div className="min-w-0">
+            <h3 className="font-headline font-bold text-on-surface text-sm truncate">{usuario.name}</h3>
+            <p className="font-headline uppercase tracking-widest text-[10px] text-primary truncate">Curador Nivel {usuario.nivel}</p>
           </div>
         </div>
       )}
 
-      <nav className="sidebar-nav">
+      <nav className="flex-1 space-y-2">
         {navItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
-            end={item.to === '/'}
-            className={({ isActive }) =>
-              `sidebar-link ${isActive ? 'sidebar-link-active' : ''}`
-            }
+            end={item.end}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${
+                  isActive
+                    ? 'bg-green-100 text-green-800 shadow-sm'
+                    : 'text-zinc-600 hover:text-green-600 hover:translate-x-1 duration-200'
+                }`
+              }
           >
-            <span className="sidebar-link-icon">{item.icon}</span>
-            <span>{item.label}</span>
+            <span className="material-symbols-outlined">{item.icon}</span>
+            <span className="font-headline uppercase tracking-widest text-[10px]">{item.label}</span>
           </NavLink>
         ))}
       </nav>
 
-      <div className="sidebar-footer">
-        {isAuthenticated ? (
-          <button className="sidebar-canjear" onClick={handleLogout}>
-            Cerrar sesión
-          </button>
-        ) : (
-          <NavLink to="/login" className="sidebar-canjear">
-            Iniciar sesión
-          </NavLink>
-        )}
-      </div>
+      <button
+        onClick={() => { logout(); navigate('/login'); }}
+        className="flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-zinc-500 hover:text-error hover:bg-error-container/20 w-full mt-2"
+      >
+        <span className="material-symbols-outlined">logout</span>
+        <span className="font-headline uppercase tracking-widest text-[10px]">Cerrar Sesión</span>
+      </button>
     </aside>
   );
 }

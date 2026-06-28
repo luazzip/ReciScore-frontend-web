@@ -10,7 +10,6 @@ const DashboardPage = lazy(() => import('../pages/DashboardPage'));
 const ReciclajePage = lazy(() => import('../pages/ReciclajePage'));
 const HistorialPage = lazy(() => import('../pages/HistorialPage'));
 const MapaPage = lazy(() => import('../pages/MapaPage'));
-const MarketplacePage = lazy(() => import('../pages/MarketplacePage'));
 const DesafiosPage = lazy(() => import('../pages/DesafiosPage'));
 const DesafioDetallePage = lazy(() => import('../pages/DesafioDetallePage'));
 const RankingPage = lazy(() => import('../pages/RankingPage'));
@@ -22,9 +21,9 @@ export default function AppRouter() {
     <BrowserRouter>
       <Suspense fallback={<Spinner fullScreen label="Cargando..." />}>
         <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
           <Route element={<AppLayout />}>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
             <Route path="/mapa" element={<MapaPage />} />
             <Route path="/ranking" element={<RankingPage />} />
           </Route>
@@ -37,7 +36,6 @@ export default function AppRouter() {
               <Route path="/desafios" element={<DesafiosPage />} />
               <Route path="/desafios/:id" element={<DesafioDetallePage />} />
               <Route path="/perfil" element={<PerfilPage />} />
-              <Route path="/marketplace" element={<MarketplacePage />} />
             </Route>
           </Route>
           <Route path="*" element={<NotFoundPage />} />

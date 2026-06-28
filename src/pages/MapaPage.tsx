@@ -1,21 +1,32 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { useFetch } from '../hooks/useFetch';
 import { mapaService } from '../services/mapaService';
 import type { PuntoMapa } from '../types/puntoMapa.types';
 import Skeleton from '../components/common/Skeleton';
 
+// ── Fix Leaflet default icon paths when bundled con Vite/webpack ──────────────
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl:       'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl:     'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
+
+// ── Tipos y constantes ────────────────────────────────────────────────────────
 type Categoria = 'PAPEL' | 'PLASTICO' | 'VIDRIO' | 'METAL';
 
 const SERVICIOS: { cat: Categoria; icon: string; label: string }[] = [
-  { cat: 'PAPEL',    icon: '📄', label: 'Papel' },
-  { cat: 'PLASTICO', icon: '🔥', label: 'Plástico' },
-  { cat: 'VIDRIO',   icon: '🍶', label: 'Vidrio' },
-  { cat: 'METAL',    icon: '🔩', label: 'Metal' },
+  { cat: 'PAPEL',    icon: 'description', label: 'Papel' },
+  { cat: 'PLASTICO', icon: 'smart_toy',   label: 'Plástico' },
+  { cat: 'VIDRIO',   icon: 'wine_bar',    label: 'Vidrio' },
+  { cat: 'METAL',    icon: 'handyman',    label: 'Metal' },
 ];
 
-// Puntos demo para cuando la API no retorna data
 const DEMO_PUNTOS: PuntoMapa[] = [
-  { id: 1, nombre: 'Reciclaje Sunset Valley', latitude: -12.097, longitude: -77.05,  tipo: 'ACOPIO_OFICIAL' },
+  { id: 1, nombre: 'Reciclaje Sunset Valley', latitude: -12.097, longitude: -77.050, tipo: 'ACOPIO_OFICIAL' },
   { id: 2, nombre: 'Eco-Centro San Isidro',   latitude: -12.103, longitude: -77.035, tipo: 'ACOPIO_OFICIAL' },
   { id: 3, nombre: 'Punto Verde Miraflores',  latitude: -12.121, longitude: -77.029, tipo: 'ACOPIO_OFICIAL' },
 ];
@@ -26,10 +37,43 @@ const SERVICIOS_PUNTO: Record<number, Partial<Record<Categoria, boolean>>> = {
   3: { PAPEL: false, PLASTICO: true,  VIDRIO: true,  METAL: false },
 };
 
+// ── Icono personalizado para los pines del mapa ───────────────────────────────
+function crearIcono(activo: boolean) {
+  const color = activo ? '#16a34a' : '#4ade80';
+  const size  = activo ? 44 : 36;
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24">
+      <circle cx="12" cy="10" r="9" fill="${color}" stroke="white" stroke-width="1.5"/>
+      <path d="M12 21 C12 21 5 15 5 10 A7 7 0 0 1 19 10 C19 15 12 21 12 21Z"
+            fill="${color}" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M9 10l1.5 1.5L15 8" stroke="white" stroke-width="1.8"
+            stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>`;
+  return L.divIcon({
+    html: svg,
+    className: '',
+    iconSize:   [size, size],
+    iconAnchor: [size / 2, size],
+    popupAnchor:[0, -size],
+  });
+}
+
+// ── Subcomponente: centra el mapa cuando cambia el punto seleccionado ─────────
+function MapCenterer({ punto }: { punto: PuntoMapa }) {
+  const map = useMap();
+  useEffect(() => {
+    map.flyTo([punto.latitude, punto.longitude], 15, { duration: 0.8 });
+  }, [punto.id]);
+  return null;
+}
+
+// ── Componente principal ──────────────────────────────────────────────────────
 export default function MapaPage() {
-  const [selected, setSelected] = useState<PuntoMapa | null>(null);
-  const [busqueda, setBusqueda] = useState('');
+  const [selected, setSelected]     = useState<PuntoMapa | null>(null);
+  const [busqueda, setBusqueda]     = useState('');
   const [showReport, setShowReport] = useState(false);
+  const [reportDesc, setReportDesc] = useState('');
+  const [radio, setRadio]           = useState(2.4);
 
   const { data, isLoading } = useFetch(
     (signal) => mapaService.getPuntos(signal),
@@ -40,166 +84,365 @@ export default function MapaPage() {
     p.nombre.toLowerCase().includes(busqueda.toLowerCase())
   );
 
-  const puntoSeleccionado = selected ?? DEMO_PUNTOS[0];
-  const serviciosPunto = SERVICIOS_PUNTO[puntoSeleccionado.id] ?? {};
+  const puntoSeleccionado = selected ?? puntos[0] ?? DEMO_PUNTOS[0];
+  const serviciosPunto    = SERVICIOS_PUNTO[puntoSeleccionado?.id] ?? {};
+
+  async function handleReportar() {
+    if (!reportDesc.trim()) return;
+    try {
+      await mapaService.reportarZonaSucia({
+        latitude:    puntoSeleccionado.latitude,
+        longitude:   puntoSeleccionado.longitude,
+        descripcion: reportDesc,
+      });
+      setShowReport(false);
+      setReportDesc('');
+    } catch {
+      // silent
+    }
+  }
 
   return (
-    <div style={{ position: 'relative', height: 'calc(100vh - 4rem)', margin: '-2rem', overflow: 'hidden' }}>
+    <>
+      <header className="mb-10 text-left">
+        <h1 className="text-5xl font-extrabold text-on-surface tracking-tight leading-none mb-2">
+          Mapa de Puntos.
+        </h1>
+        <p className="text-on-surface-variant font-body text-lg">
+          Encuentra puntos de reciclaje cercanos y verifica su disponibilidad.
+        </p>
+      </header>
 
-      {/* MAP BACKGROUND */}
-      <div style={{
-        position: 'absolute', inset: 0,
-        background: 'linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 40%, #e0f2f1 100%)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center'
-      }}>
-        {/* Fake road grid */}
-        <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0, opacity: 0.3 }}>
-          {[...Array(12)].map((_, i) => (
-            <line key={`h${i}`} x1="0" y1={`${(i + 1) * 8}%`} x2="100%" y2={`${(i + 1) * 8}%`}
-              stroke="#b2dfdb" strokeWidth="1.5" />
-          ))}
-          {[...Array(16)].map((_, i) => (
-            <line key={`v${i}`} x1={`${(i + 1) * 6.25}%`} y1="0" x2={`${(i + 1) * 6.25}%`} y2="100%"
-              stroke="#b2dfdb" strokeWidth="1.5" />
-          ))}
-          {/* Avenidas principales */}
-          <line x1="0" y1="35%" x2="100%" y2="42%" stroke="#a5d6a7" strokeWidth="4" />
-          <line x1="25%" y1="0" x2="30%" y2="100%" stroke="#a5d6a7" strokeWidth="4" />
-          <line x1="60%" y1="0" x2="55%" y2="100%" stroke="#a5d6a7" strokeWidth="3" />
-        </svg>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-        {/* Map pins */}
-        {puntos.map((p, i) => {
-          const topPct  = 20 + (i * 25) % 55;
-          const leftPct = 20 + (i * 37) % 60;
-          const isActive = puntoSeleccionado.id === p.id;
-          return (
-            <button
-              key={p.id}
-              onClick={() => setSelected(p)}
-              style={{
-                position: 'absolute',
-                top: `${topPct}%`, left: `${leftPct}%`,
-                width: isActive ? 48 : 40, height: isActive ? 48 : 40,
-                borderRadius: '50%',
-                background: isActive ? 'var(--green-600)' : 'var(--green-500)',
-                border: `3px solid ${isActive ? 'white' : 'var(--green-700)'}`,
-                boxShadow: isActive ? '0 4px 16px rgba(22,163,74,0.5)' : 'var(--shadow)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: isActive ? '1.25rem' : '1rem',
-                cursor: 'pointer', transition: 'all 0.2s', zIndex: isActive ? 10 : 5,
-                transform: isActive ? 'scale(1.1)' : 'scale(1)'
-              }}
-            >
-              ♻️
-            </button>
-          );
-        })}
-      </div>
+        {/* ── COLUMNA IZQUIERDA: Mapa real ── */}
+        <section className="lg:col-span-7 space-y-6">
+          <div className="bg-surface-container-lowest rounded-lg shadow-sm border border-outline-variant/5 relative overflow-hidden">
 
-      {/* SEARCH BAR */}
-      <div style={{
-        position: 'absolute', top: '1rem', left: '50%', transform: 'translateX(-50%)',
-        width: '100%', maxWidth: 480, padding: '0 1rem', zIndex: 20
-      }}>
-        <div style={{
-          background: 'white', borderRadius: 999,
-          boxShadow: 'var(--shadow-lg)',
-          display: 'flex', alignItems: 'center', padding: '0.625rem 1.25rem', gap: '0.5rem'
-        }}>
-          <span style={{ color: 'var(--gray-400)', fontSize: '1rem' }}>🔍</span>
-          <input
-            value={busqueda}
-            onChange={e => setBusqueda(e.target.value)}
-            placeholder="Buscar puntos de reciclaje"
-            style={{
-              border: 'none', outline: 'none', flex: 1,
-              fontSize: '0.9375rem', background: 'transparent', color: 'var(--gray-800)'
-            }}
-          />
-          <span style={{ color: 'var(--gray-300)', fontSize: '1.1rem' }}>⊞</span>
-        </div>
-      </div>
-
-      {/* PUNTO CARD */}
-      <div style={{
-        position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 20,
-        padding: '0 1.5rem 1.5rem'
-      }}>
-        {isLoading ? (
-          <div className="card"><Skeleton rows={3} /></div>
-        ) : (
-          <div className="card" style={{ boxShadow: 'var(--shadow-lg)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-              <div>
-                <span style={{
-                  background: 'var(--green-50)', color: 'var(--green-700)',
-                  fontSize: '0.7rem', fontWeight: 700, padding: '0.2rem 0.625rem',
-                  borderRadius: 999, textTransform: 'uppercase', letterSpacing: '0.06em',
-                  display: 'inline-block', marginBottom: '0.375rem'
-                }}>Punto Seleccionado</span>
-                <h2 style={{ marginBottom: '0.25rem', fontSize: '1.25rem' }}>{puntoSeleccionado.nombre}</h2>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.875rem', color: 'var(--gray-500)' }}>
-                  📍 425 Geary St, Lima PE
-                </div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ color: 'var(--green-600)', fontWeight: 700, fontSize: '0.875rem' }}>Abierto ahora</div>
-                <div style={{ fontSize: '0.8125rem', color: 'var(--gray-400)' }}>Cierra a las 8:00 PM</div>
-              </div>
+            {/* Badge GPS */}
+            <div className="absolute top-4 right-4 z-[1000]">
+              <span className="px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full text-[10px] font-bold uppercase tracking-widest shadow-sm">
+                GPS Habilitado
+              </span>
             </div>
 
-            {/* Servicios */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', marginBottom: '1rem' }}>
+            {/* Mapa Leaflet */}
+            {isLoading ? (
+              <div className="h-96 flex flex-col items-center justify-center gap-4 bg-surface-container/20">
+                <span className="material-symbols-outlined text-5xl text-primary animate-pulse">
+                  my_location
+                </span>
+                <p className="text-lg font-bold text-on-surface">
+                  Cargando puntos de reciclaje...
+                </p>
+              </div>
+            ) : (
+              <div className="h-96 w-full rounded-t-lg overflow-hidden">
+                <MapContainer
+                  center={[puntoSeleccionado.latitude, puntoSeleccionado.longitude]}
+                  zoom={14}
+                  style={{ height: '100%', width: '100%' }}
+                  zoomControl={true}
+                >
+                  <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                  />
+
+                  {/* Centra el mapa al cambiar selección */}
+                  <MapCenterer punto={puntoSeleccionado} />
+
+                  {/* Pines */}
+                  {puntos.map((p) => {
+                    const activo = puntoSeleccionado?.id === p.id;
+                    return (
+                      <Marker
+                        key={p.id}
+                        position={[p.latitude, p.longitude]}
+                        icon={crearIcono(activo)}
+                        eventHandlers={{ click: () => setSelected(p) }}
+                        zIndexOffset={activo ? 1000 : 0}
+                      >
+                        <Popup>
+                          <span className="font-bold text-sm">{p.nombre}</span>
+                          <br />
+                          <span className="text-xs text-gray-500 capitalize">
+                            {p.tipo.replace('_', ' ').toLowerCase()}
+                          </span>
+                        </Popup>
+                      </Marker>
+                    );
+                  })}
+                </MapContainer>
+              </div>
+            )}
+
+            {/* Stats bajo el mapa */}
+            <div className="p-6 flex flex-wrap gap-4">
+              <div className="flex-1 min-w-[140px] p-4 bg-surface rounded-lg border border-outline-variant/10">
+                <p className="text-[10px] font-bold uppercase text-on-surface-variant tracking-widest mb-1">
+                  Estado
+                </p>
+                <p className="text-sm font-semibold flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                  {puntos.length} puntos activos
+                </p>
+              </div>
+              <div className="flex-1 min-w-[140px] p-4 bg-surface rounded-lg border border-outline-variant/10">
+                <p className="text-[10px] font-bold uppercase text-on-surface-variant tracking-widest mb-1">
+                  Cobertura
+                </p>
+                <p className="text-sm font-semibold">{radio.toFixed(1)} km a la redonda</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Filtros de Material */}
+          <div className="bg-surface-container-low rounded-lg p-8">
+            <h3 className="text-xl font-headline font-bold mb-6">Filtros de Material</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {SERVICIOS.map(({ cat, icon, label }) => {
                 const acepta = serviciosPunto[cat] !== false;
                 return (
-                  <div key={cat} style={{
-                    padding: '0.75rem 0.5rem', textAlign: 'center',
-                    background: acepta ? 'var(--green-50)' : 'var(--gray-50)',
-                    borderRadius: 'var(--radius)',
-                    border: `1px solid ${acepta ? 'var(--green-200)' : 'var(--gray-200)'}`,
-                    opacity: acepta ? 1 : 0.55
-                  }}>
-                    <div style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>{icon}</div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.125rem' }}>{label}</div>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: acepta ? 'var(--green-700)' : 'var(--gray-400)' }}>
-                      {acepta ? 'Aceptado' : 'Sin Servicio'}
-                    </div>
-                  </div>
+                  <button
+                    key={cat}
+                    className={`flex flex-col items-center gap-3 p-4 bg-surface-container-lowest rounded-lg border-2 transition-colors ${
+                      acepta
+                        ? 'border-primary shadow-sm'
+                        : 'border-transparent hover:border-outline-variant'
+                    }`}
+                  >
+                    <span
+                      className={`material-symbols-outlined text-3xl ${
+                        acepta ? 'text-primary' : 'text-on-surface-variant/50'
+                      }`}
+                      style={acepta ? { fontVariationSettings: '"FILL" 1' } : {}}
+                    >
+                      {icon}
+                    </span>
+                    <span className="text-xs font-bold uppercase tracking-widest">{label}</span>
+                  </button>
                 );
               })}
             </div>
-
-            {/* Actions */}
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-              <button className="btn btn-primary" style={{ flex: 1, background: 'var(--green-800)', padding: '0.75rem' }}>
-                📍 Cómo llegar
-              </button>
-              <button style={{
-                width: 44, height: 44, borderRadius: '50%', border: '1px solid var(--gray-200)',
-                background: 'white', fontSize: '1.1rem', cursor: 'pointer', flexShrink: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}>🔗</button>
-            </div>
           </div>
-        )}
-      </div>
+        </section>
 
-      {/* REPORTAR PUNTO SUCIO */}
-      <button
-        onClick={() => setShowReport(!showReport)}
-        style={{
-          position: 'absolute', bottom: showReport ? 'auto' : '1.5rem', right: '1.5rem',
-          top: showReport ? '1rem' : 'auto',
-          background: 'var(--green-800)', color: 'white',
-          border: 'none', borderRadius: 999, padding: '0.625rem 1.25rem',
-          fontWeight: 700, fontSize: '0.8125rem', cursor: 'pointer',
-          boxShadow: 'var(--shadow-md)', zIndex: 30
-        }}
-      >
-        {showReport ? '✕ Cerrar' : 'Reportar Punto Sucio'}
-      </button>
-    </div>
+        {/* ── COLUMNA DERECHA: Búsqueda + Detalle + CTA ── */}
+        <aside className="lg:col-span-5 space-y-6">
+          {isLoading ? (
+            <div className="bg-surface-container-lowest rounded-lg p-8 shadow-sm">
+              <Skeleton rows={4} />
+            </div>
+          ) : (
+            <>
+              {/* Búsqueda */}
+              <div className="bg-surface-container-lowest rounded-lg p-8 shadow-sm border border-outline-variant/5">
+                <h3 className="text-xl font-headline font-bold mb-6">Buscar Puntos</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2 ml-1">
+                      Radio de búsqueda (KM)
+                    </label>
+                    <input
+                      type="range"
+                      value={radio}
+                      onChange={e => setRadio(Number(e.target.value))}
+                      min={0.5}
+                      max={10}
+                      step={0.1}
+                      className="w-full h-2 bg-surface-container-high rounded-full appearance-none cursor-pointer accent-primary"
+                    />
+                    <div className="flex justify-between mt-2 text-[10px] font-bold text-on-surface-variant">
+                      <span>0.5km</span>
+                      <span className="text-primary text-sm">{radio.toFixed(1)} km</span>
+                      <span>10km</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2 ml-1">
+                        Buscar
+                      </label>
+                      <input
+                        value={busqueda}
+                        onChange={e => setBusqueda(e.target.value)}
+                        placeholder="Nombre del punto"
+                        className="w-full px-4 py-3 bg-surface-container-low border-0 border-b-2 border-outline-variant/20 focus:border-secondary focus:ring-0 rounded-t-lg transition-colors font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2 ml-1">
+                        Tipo
+                      </label>
+                      <select className="w-full px-4 py-3 bg-surface-container-low border-0 border-b-2 border-outline-variant/20 focus:border-secondary focus:ring-0 rounded-t-lg transition-colors font-bold appearance-none">
+                        <option>Todos</option>
+                        <option>Acopio oficial</option>
+                        <option>Zona reportada</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Lista de puntos */}
+              <div className="bg-surface-container-lowest rounded-lg overflow-hidden shadow-sm border border-outline-variant/5">
+                {puntos.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <span className="material-symbols-outlined text-4xl text-on-surface-variant/40">
+                      search_off
+                    </span>
+                    <p className="text-sm font-bold text-on-surface mt-2">
+                      No se encontraron puntos
+                    </p>
+                  </div>
+                ) : (
+                  puntos.map((p) => {
+                    const activo = puntoSeleccionado?.id === p.id;
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => setSelected(p)}
+                        className={`w-full text-left flex items-center gap-4 px-6 py-4 border-b border-outline-variant/10 transition-colors last:border-0 ${
+                          activo
+                            ? 'bg-primary/5 border-l-4 border-l-primary'
+                            : 'hover:bg-surface-container/40'
+                        }`}
+                      >
+                        <div
+                          className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                            activo ? 'bg-primary text-on-primary' : 'bg-surface-container text-on-surface-variant'
+                          }`}
+                        >
+                          <span
+                            className="material-symbols-outlined text-base"
+                            style={{ fontVariationSettings: '"FILL" 1' }}
+                          >
+                            recycling
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-bold truncate ${activo ? 'text-primary' : 'text-on-surface'}`}>
+                            {p.nombre}
+                          </p>
+                          <p className="text-[10px] text-on-surface-variant uppercase tracking-widest mt-0.5">
+                            {p.tipo.replace('_', ' ').toLowerCase()}
+                          </p>
+                        </div>
+                        {activo && (
+                          <span className="material-symbols-outlined text-primary text-sm">
+                            chevron_right
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Detalle del punto seleccionado */}
+              {puntoSeleccionado && (
+                <div className="bg-surface-container-lowest rounded-lg overflow-hidden shadow-sm border border-outline-variant/5">
+                  <div className="p-6 border-b border-outline-variant/10">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-widest mb-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                          Punto seleccionado
+                        </span>
+                        <h3 className="text-lg font-bold text-on-surface">
+                          {puntoSeleccionado.nombre}
+                        </h3>
+                        <p className="text-xs text-on-surface-variant mt-1 flex items-center gap-1">
+                          <span className="material-symbols-outlined text-xs">location_on</span>
+                          {puntoSeleccionado.latitude.toFixed(4)},{' '}
+                          {puntoSeleccionado.longitude.toFixed(4)}
+                        </p>
+                      </div>
+                      <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-1 rounded-full whitespace-nowrap">
+                        Abierto
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Servicios del punto */}
+                  <div className="grid grid-cols-4 divide-x divide-outline-variant/10">
+                    {SERVICIOS.map(({ cat, icon, label }) => {
+                      const acepta = serviciosPunto[cat] !== false;
+                      return (
+                        <div
+                          key={cat}
+                          className={`flex flex-col items-center gap-1 py-4 ${
+                            acepta ? 'bg-primary/5' : ''
+                          }`}
+                        >
+                          <span
+                            className={`material-symbols-outlined text-2xl ${
+                              acepta ? 'text-primary' : 'text-on-surface-variant/30'
+                            }`}
+                            style={acepta ? { fontVariationSettings: '"FILL" 1' } : {}}
+                          >
+                            {icon}
+                          </span>
+                          <span className="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant">
+                            {label}
+                          </span>
+                          <span
+                            className={`text-[9px] font-bold ${
+                              acepta ? 'text-primary' : 'text-on-surface-variant/50'
+                            }`}
+                          >
+                            {acepta ? 'Aceptado' : 'Sin servicio'}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* CTA: Reportar */}
+              <div className="pt-2">
+                <button
+                  onClick={() => setShowReport(!showReport)}
+                  className="w-full group relative py-6 bg-gradient-to-br from-primary to-primary-dim text-on-primary rounded-lg font-headline font-bold text-lg overflow-hidden transition-all active:scale-95 duration-150"
+                >
+                  <div className="flex items-center justify-center gap-3">
+                    <span>{showReport ? 'Cerrar reporte' : 'Reportar punto sucio'}</span>
+                    <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">
+                      arrow_forward
+                    </span>
+                  </div>
+                  <div className="absolute bottom-0 left-0 h-1 bg-tertiary w-3/4" />
+                </button>
+
+                {showReport && (
+                  <div className="mt-4 space-y-4">
+                    <textarea
+                      value={reportDesc}
+                      onChange={e => setReportDesc(e.target.value)}
+                      placeholder="Describe el problema..."
+                      className="w-full bg-surface-container-low border-0 border-b-2 border-outline-variant/20 focus:border-error focus:ring-0 rounded-t-lg p-3 text-sm font-bold transition-colors resize-none"
+                      rows={3}
+                    />
+                    <button
+                      onClick={handleReportar}
+                      className="w-full bg-error text-on-error font-bold py-3 rounded-full text-xs uppercase tracking-wider hover:brightness-110 transition-all active:scale-95"
+                    >
+                      Enviar reporte
+                    </button>
+                  </div>
+                )}
+
+                <p className="mt-4 text-center text-[10px] font-bold uppercase tracking-widest text-on-surface-variant flex items-center justify-center gap-2">
+                  <span className="material-symbols-outlined text-sm text-tertiary">bolt</span>
+                  {puntos.length} puntos de reciclaje disponibles
+                </p>
+              </div>
+            </>
+          )}
+        </aside>
+      </div>
+    </>
   );
 }
