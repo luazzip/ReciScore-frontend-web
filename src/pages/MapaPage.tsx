@@ -211,7 +211,9 @@ export default function MapaPage() {
   const serviciosPunto    = puntoSeleccionado?.servicios ?? {};
   const esPuntoReporte    = selected && selected.id < 0;
   const esZonaSucia       = puntoSeleccionado?.tipo === 'ZONA_SUCIA';
-  const mapCenter         = puntoSeleccionado ?? refLocation ?? DEFAULT_CENTER;
+  const mapCenter         = puntoSeleccionado
+    ? { lat: puntoSeleccionado.latitude, lng: puntoSeleccionado.longitude }
+    : (refLocation ?? DEFAULT_CENTER);
 
   function handleMapClick(lat: number, lng: number) {
     setSelected({
