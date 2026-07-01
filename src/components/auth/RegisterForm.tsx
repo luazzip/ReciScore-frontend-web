@@ -40,7 +40,7 @@ export default function RegisterForm() {
   async function onSubmit(values: RegisterFormValues) {
     setSubmitError(null);
     try {
-      const { confirmPassword: _, terms: __, email, password, name } = values;
+      const { email, password, name } = values;
       await registerUser({ email, password, name, username: email.split('@')[0] });
       notify('success', '¡Bienvenido a ReciScore!');
       navigate('/', { replace: true });

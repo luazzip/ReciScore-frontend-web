@@ -40,6 +40,9 @@ export const authService = {
   restoreSession(): Usuario | null {
     return tokenStorage.getUser<Usuario>();
   },
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    await axiosClient.post('/auth/change-password', { currentPassword, newPassword });
+  },
   logout(): void {
     tokenStorage.clear();
   },

@@ -1,10 +1,8 @@
 import { useFetch } from '../../hooks/useFetch';
 import { reciclajeService } from '../../services/reciclajeService';
 import { useAuth } from '../../hooks/useAuth';
-import ReciclajeCard from './ReciclajeCard';
-import Skeleton from '../common/Skeleton';
-import EmptyState from '../common/EmptyState';
-import ErrorMessage from '../common/ErrorMessage';
+import ReciclajeHistorialListView from './ReciclajeHistorialListView';
+import type { ReporteReciclaje } from '../../types/reciclaje.types';
 
 export default function ReciclajeHistorialList() {
   const { usuario } = useAuth();
@@ -14,19 +12,14 @@ export default function ReciclajeHistorialList() {
     [usuario?.id]
   );
 
-  if (isLoading) return <Skeleton rows={4} />;
-  if (error) return <ErrorMessage error={error} onRetry={refetch} />;
-  if (!data || data.length === 0) {
-    return <EmptyState title="Aún no tienes reciclajes registrados" description="Registra tu primer reciclaje para empezar a sumar puntos." />;
-  }
+  const reportes: ReporteReciclaje[] = data ?? [];
 
   return (
-    <div>
-      <div className="reciclaje-list">
-        {data.map((r) => (
-          <ReciclajeCard key={r.numeroReporte} reporte={r} />
-        ))}
-      </div>
-    </div>
+    <ReciclajeHistorialListView
+      reportes={reportes}
+      isLoading={isLoading}
+      error={error}
+      onRetry={refetch}
+    />
   );
 }

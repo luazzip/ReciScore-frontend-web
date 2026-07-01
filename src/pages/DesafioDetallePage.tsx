@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useNotification } from '../hooks/useNotification';
 import Skeleton from '../components/common/Skeleton';
 import ErrorMessage from '../components/common/ErrorMessage';
+import EmptyState from '../components/common/EmptyState';
 
 const CAT_ICON: Record<string, string> = {
   RECICLAJE: ' recycling', COMUNIDAD: 'diversity_3', RACHA: 'local_fire_department',
@@ -64,7 +65,7 @@ export default function DesafioDetallePage() {
     </div>
   );
   if (error) return <div className="min-h-screen bg-background flex items-center justify-center p-8"><ErrorMessage error={error} onRetry={refetch} /></div>;
-  if (!data) return null;
+  if (!data) return <div className="min-h-screen bg-background flex items-center justify-center p-8"><EmptyState title="Desafío no encontrado" description="El desafío que buscas no existe o ha sido eliminado." /></div>;
 
   const cat = data.categoria?.toUpperCase() ?? 'GENERAL';
   const color = CAT_COLOR[cat] ?? '#16a34a';

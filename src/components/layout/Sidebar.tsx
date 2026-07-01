@@ -30,7 +30,7 @@ export default function Sidebar() {
           </div>
           <div className="min-w-0">
             <h3 className="font-headline font-bold text-on-surface text-sm truncate">{usuario.name}</h3>
-            <p className="font-headline uppercase tracking-widest text-[10px] text-primary truncate">Curador Nivel {usuario.nivel}</p>
+            <p className="font-headline uppercase tracking-widest text-[10px] text-primary truncate">Nivel {usuario.nivel}</p>
           </div>
         </Link>
       )}

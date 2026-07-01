@@ -1,12 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useFetch } from '../../hooks/useFetch';
 import { useAuth } from '../../hooks/useAuth';
 import { useNotification } from '../../hooks/useNotification';
 import { desafioService } from '../../services/desafioService';
-import DesafioCard from './DesafioCard';
-import Skeleton from '../common/Skeleton';
-import EmptyState from '../common/EmptyState';
-import ErrorMessage from '../common/ErrorMessage';
+import DesafiosListView from './DesafiosListView';
+import type { Desafio } from '../../types/desafio.types';
 
 export default function DesafiosList() {
   const { usuario } = useAuth();
@@ -15,13 +13,12 @@ export default function DesafiosList() {
     (signal) => usuario ? desafioService.getActivosConInscripcion(usuario.id, signal) : desafioService.getActivos(signal),
     [usuario?.id]
   );
-  const [inscritos, setInscritos] = useState<Set<number>>(new Set());
 
-  useEffect(() => {
-    if (data) {
-      setInscritos(new Set(data.filter((d) => d.inscrito).map((d) => d.id)));
-    }
-  }, [data]);
+  const desafios: Desafio[] = data ?? [];
+
+  const [inscritos, setInscritos] = useState<Set<number>>(
+    () => new Set(desafios.filter((d) => d.inscrito).map((d) => d.id))
+  );
 
   const handleInscribirse = useCallback(async (desafioId: number) => {
     if (!usuario) return;
@@ -45,23 +42,15 @@ export default function DesafiosList() {
     }
   }, [usuario, notify]);
 
-  if (isLoading) return <Skeleton rows={3} />;
-  if (error) return <ErrorMessage error={error} onRetry={refetch} />;
-  if (!data || data.length === 0) {
-    return <EmptyState title="No hay desafíos activos" description="Vuelve más tarde para encontrar nuevos desafíos." />;
-  }
-
   return (
-    <div className="desafios-list">
-      {data.map((d) => (
-        <DesafioCard
-          key={d.id}
-          usuarioDesafio={{ desafio: d, progresoActual: d.progresoActual ?? 0, completado: d.completado ?? false }}
-          inscrito={inscritos.has(d.id)}
-          onInscribirse={handleInscribirse}
-          onDesistir={handleDesistir}
-        />
-      ))}
-    </div>
+    <DesafiosListView
+      desafios={desafios}
+      inscritos={inscritos}
+      isLoading={isLoading}
+      error={error}
+      onRetry={refetch}
+      onInscribirse={handleInscribirse}
+      onDesistir={handleDesistir}
+    />
   );
 }

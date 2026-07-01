@@ -9,18 +9,6 @@ import Skeleton from '../components/common/Skeleton';
 import ErrorMessage from '../components/common/ErrorMessage';
 import EmptyState from '../components/common/EmptyState';
 
-const LEVEL_TITLES = [
-  { max: 10, title: 'Aprendiz Verde' },
-  { max: 20, title: 'Estrella Naciente' },
-  { max: 30, title: 'Maestro Upcycler' },
-  { max: 40, title: 'Leyenda Eco' },
-  { max: Infinity, title: 'Guardián del Planeta' },
-];
-
-function getLevelTitle(nivel: number): string {
-  return LEVEL_TITLES.find(t => nivel <= t.max)?.title ?? 'Curador';
-}
-
 const ICONOS_DISTRITO: Record<string, string> = {
   'Miraflores': 'park',
   'San Isidro': 'location_on',
@@ -162,7 +150,6 @@ export default function RankingPage() {
                   <div className="divide-y divide-surface-container">
                     {data.map((e) => {
                       const esYo = !!(usuario && (e.userId === usuario.id || e.username === usuario.username));
-                      const title = getLevelTitle(e.nivel);
                       return (
                         <div
                           key={e.posicion}
@@ -186,7 +173,6 @@ export default function RankingPage() {
                             )}
                             <div>
                               <p className="font-bold text-on-surface">{e.name ?? e.username}</p>
-                              <p className="text-xs text-on-surface-variant italic">{title}</p>
                             </div>
                           </div>
                           <div className="col-span-2 text-center font-headline font-bold text-secondary">LV. {e.nivel}</div>
@@ -220,8 +206,8 @@ export default function RankingPage() {
                 <div className="col-span-4 text-right">Puntaje Total</div>
               </div>
               {distritosRanking.length === 0 ? (
-                <div className="p-8 text-center text-on-surface-variant text-sm">
-                  No hay datos de distritos disponibles
+                <div className="p-8">
+                  <EmptyState title="Sin datos de distritos" description="Aún no hay suficientes datos para mostrar el ranking entre distritos." />
                 </div>
               ) : (
                 <div className="divide-y divide-surface-container">

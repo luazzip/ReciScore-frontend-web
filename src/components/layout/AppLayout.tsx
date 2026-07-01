@@ -40,7 +40,6 @@ export default function AppLayout() {
           <span className="text-xl font-bold text-green-800 font-headline tracking-tight">{title}</span>
         </div>
         <div className="flex items-center gap-6">
-          <button className="material-symbols-outlined text-zinc-500 hover:bg-green-50 p-2 rounded-full transition-colors">notifications</button>
           {usuario && (
             <div className="flex items-center gap-2 bg-primary-container px-4 py-1.5 rounded-full">
               <span className="material-symbols-outlined text-on-primary-container text-sm" style={{ fontVariationSettings: '"FILL" 1' }}>token</span>

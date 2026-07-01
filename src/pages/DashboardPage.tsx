@@ -47,6 +47,16 @@ export default function DashboardPage() {
     []
   );
 
+  const { data: puntos } = useFetch(
+    (signal) => mapaService.getPuntos(signal),
+    []
+  );
+
+  const { data: ranking } = useFetch(
+    (signal) => rankingService.getGlobal(signal),
+    []
+  );
+
   if (authLoading) return <Spinner fullScreen label="Cargando..." />;
 
   if (!usuario) {
@@ -74,15 +84,6 @@ export default function DashboardPage() {
   );
   const totalPeso = pesoReportes + pesoDesafios;
 
-  const { data: puntos } = useFetch(
-    (signal) => mapaService.getPuntos(signal),
-    []
-  );
-
-  const { data: ranking } = useFetch(
-    (signal) => rankingService.getGlobal(signal),
-    []
-  );
   const miRanking = ranking?.find(r => r.userId === usuario?.id) ?? null;
 
   return (
