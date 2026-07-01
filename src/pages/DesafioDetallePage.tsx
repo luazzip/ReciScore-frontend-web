@@ -7,13 +7,13 @@ import Skeleton from '../components/common/Skeleton';
 import ErrorMessage from '../components/common/ErrorMessage';
 
 const CAT_ICON: Record<string, string> = {
-  PLASTICO: '🧴', PAPEL: '📄', VIDRIO: '🍶',
-  METAL: '🔩', COMUNIDAD: '👥', GENERAL: '🌿',
+  RECICLAJE: ' recycling', COMUNIDAD: 'diversity_3', RACHA: 'local_fire_department',
+  IMPACTO: 'monitoring', EVENTO: 'event', GENERAL: 'eco',
 };
 
 const CAT_COLOR: Record<string, string> = {
-  PLASTICO: '#3b82f6', PAPEL: '#f97316', VIDRIO: '#10b981',
-  METAL: '#6b7280', COMUNIDAD: '#8b5cf6', GENERAL: '#22c55e',
+  RECICLAJE: '#16a34a', COMUNIDAD: '#8b5cf6', RACHA: '#ef4444',
+  IMPACTO: '#f97316', EVENTO: '#3b82f6', GENERAL: '#16a34a',
 };
 
 function fmt(iso: string) {
@@ -32,8 +32,8 @@ export default function DesafioDetallePage() {
   const { notify } = useNotification();
 
   const { data, isLoading, error, refetch } = useFetch(
-    (signal) => desafioService.getById(Number(id), signal),
-    [id]
+    (signal) => desafioService.getById(Number(id), signal, usuario?.id),
+    [id, usuario?.id]
   );
 
   async function handleInscribirse() {
@@ -58,177 +58,175 @@ export default function DesafioDetallePage() {
     }
   }
 
-  if (isLoading) return <div style={{ padding: '2rem' }}><Skeleton rows={5} /></div>;
-  if (error) return <ErrorMessage error={error} onRetry={refetch} />;
+  if (isLoading) return (
+    <div className="min-h-screen bg-background flex items-center justify-center p-8">
+      <Skeleton rows={6} />
+    </div>
+  );
+  if (error) return <div className="min-h-screen bg-background flex items-center justify-center p-8"><ErrorMessage error={error} onRetry={refetch} /></div>;
   if (!data) return null;
 
-  const cat   = data.categoria?.toUpperCase() ?? 'GENERAL';
-  const color = CAT_COLOR[cat] ?? '#22c55e';
-  const icon  = CAT_ICON[cat]  ?? '🌿';
-  const dias  = diasRestantes(data.fecha_fin);
-  const unidad = data.categoria === 'RACHA' ? 'días' : 'artículos';
+  const cat = data.categoria?.toUpperCase() ?? 'GENERAL';
+  const color = CAT_COLOR[cat] ?? '#16a34a';
+  const icon = CAT_ICON[cat] ?? 'eco';
+  const dias = diasRestantes(data.fecha_fin);
+  const unidad = data.categoria === 'RACHA' ? 'días' : 'kg';
+  const progreso = data.progresoActual ?? 0;
+  const pct = data.inscrito ? Math.min(100, (progreso / data.meta_valor) * 100) : 0;
 
   return (
-    <div>
-      {/* Back */}
-      <button
-        onClick={() => navigate('/desafios')}
-        style={{
-          background: 'none', border: 'none', cursor: 'pointer',
-          color: 'var(--gray-500)', fontSize: '0.875rem', fontWeight: 600,
-          display: 'flex', alignItems: 'center', gap: '0.375rem',
-          marginBottom: '1.5rem', padding: 0
-        }}
-      >
-        ← Volver a desafíos
-      </button>
+    <div className="relative">
+      {/* Floating blobs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-primary-container floating-blob animate-pulse" />
+        <div className="absolute top-1/2 -right-48 w-[500px] h-[500px] rounded-full bg-secondary-container floating-blob" style={{ animationDelay: '2s' }} />
+        <div className="absolute -bottom-24 left-1/3 w-80 h-80 rounded-full bg-tertiary-container floating-blob" style={{ animationDelay: '3s' }} />
+      </div>
 
-      <div className="ranking-layout">
-        {/* LEFT — detail */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div className="relative z-10 max-w-6xl mx-auto space-y-8">
+        {/* Back button */}
+        <button
+          onClick={() => navigate('/desafios')}
+          className="flex items-center gap-1.5 text-sm font-bold text-on-surface-variant hover:text-on-surface transition-colors group"
+        >
+          <span className="material-symbols-outlined text-lg group-hover:-translate-x-1 transition-transform">arrow_back</span>
+          Volver a desafíos
+        </button>
 
-          {/* Hero card */}
-          <div className="card" style={{ position: 'relative', overflow: 'hidden', padding: '2rem' }}>
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 5, background: color }} />
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-              <div style={{
-                width: 64, height: 64, borderRadius: '50%',
-                background: color + '18', flexShrink: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem'
-              }}>{icon}</div>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.25rem' }}>
-                  {data.categoria}
-                </div>
-                <h1 style={{ fontSize: '1.75rem', marginBottom: '0.25rem' }}>{data.titulo}</h1>
-                <span className={data.activo ? 'badge-ok' : 'badge-warning'}>
-                  {data.activo ? 'Activo' : 'Inactivo'}
-                </span>
-              </div>
-            </div>
-
-            {data.descripcion && (
-              <p style={{ color: 'var(--gray-500)', fontSize: '0.9375rem', lineHeight: 1.7, marginBottom: '1.5rem' }}>
-                {data.descripcion}
-              </p>
-            )}
-
-            {/* Stats grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-              {[
-                { label: 'Recompensa',     value: `+${data.puntos} pts`, color: 'var(--green-600)' },
-                { label: 'Meta',           value: `${data.meta_valor} ${unidad}`, color: 'var(--gray-800)' },
-                { label: 'Días restantes', value: dias === 0 ? 'Último día' : `${dias}d`, color: dias <= 3 ? '#ef4444' : 'var(--gray-800)' },
-              ].map(s => (
-                <div key={s.label} style={{
-                  padding: '1rem', background: 'var(--gray-50)',
-                  borderRadius: 'var(--radius)', textAlign: 'center',
-                  border: '1px solid var(--gray-200)'
-                }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: s.color, marginBottom: '0.25rem' }}>
-                    {s.value}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* LEFT - main content */}
+          <div className="lg:col-span-7 space-y-6">
+            {/* Hero card */}
+            <div className="bg-surface-container-lowest rounded-lg overflow-hidden shadow-xl shadow-on-surface/5 border border-outline-variant/10">
+              <div style={{ height: 5, background: `linear-gradient(90deg, ${color}, ${color}66)` }} />
+              <div className="p-6 md:p-8">
+                <div className="flex items-start gap-4 mb-6">
+                  <div className="w-16 h-16 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: color + '18' }}>
+                    <span className="material-symbols-outlined text-3xl" style={{ color, fontVariationSettings: '"FILL" 1' }}>{icon}</span>
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    {s.label}
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1">{data.categoria}</div>
+                    <h1 className="font-headline text-2xl md:text-3xl font-extrabold tracking-tight text-on-surface leading-tight">{data.titulo}</h1>
+                    <div className="flex gap-2 mt-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full" style={{ background: data.activo ? '#16a34a18' : '#ef444418', color: data.activo ? '#16a34a' : '#ef4444' }}>
+                        {data.activo ? 'Activo' : 'Inactivo'}
+                      </span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-primary-container text-on-primary-container">
+                        +{data.puntos} pts
+                      </span>
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
 
-            {/* Progress */}
-            <div style={{ marginBottom: '1.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
-                <span style={{ color: 'var(--gray-600)', fontWeight: 600 }}>Progreso</span>
-                <span style={{ color: 'var(--gray-400)' }}>
-                  {data.inscrito ? `0 / ${data.meta_valor} ${unidad}` : 'No inscrito'}
-                </span>
-              </div>
-              <div className="progress-bar">
-                <div className="progress-fill" style={{
-                  width: data.inscrito ? '10%' : '0%',
-                  background: color
-                }} />
-              </div>
-            </div>
+                {data.descripcion && (
+                  <p className="text-sm md:text-base text-on-surface-variant leading-relaxed mb-8">{data.descripcion}</p>
+                )}
 
-            {/* CTA */}
-            {data.activo && (
-              data.inscrito ? (
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                  <button className="btn btn-primary" style={{ flex: 1, background: color }}>
-                    Registrar avance
-                  </button>
-                  <button
-                    onClick={handleDesistir}
-                    className="btn"
-                    style={{ width: 'auto', padding: '0.75rem 1.25rem', background: 'var(--gray-100)', color: 'var(--gray-500)', fontSize: '0.875rem' }}
-                  >
-                    Retirarme
-                  </button>
+                {/* Stats grid */}
+                <div className="grid grid-cols-3 gap-3 mb-8">
+                  {[
+                    { label: 'Recompensa', value: `+${data.puntos} pts`, color: 'text-primary' },
+                    { label: 'Meta', value: `${data.meta_valor} ${unidad}`, color: 'text-on-surface' },
+                    { label: 'Días rest.', value: dias === 0 ? 'Último día' : `${dias}d`, color: dias <= 3 ? 'text-error' : 'text-on-surface' },
+                  ].map(s => (
+                    <div key={s.label} className="p-4 rounded-lg text-center bg-surface-container-low border border-outline-variant/20">
+                      <div className={`font-headline text-xl md:text-2xl font-extrabold tracking-tight mb-0.5 ${s.color}`}>{s.value}</div>
+                      <div className="text-[10px] text-on-surface-variant uppercase tracking-widest font-bold">{s.label}</div>
+                    </div>
+                  ))}
                 </div>
-              ) : (
-                <button
-                  onClick={handleInscribirse}
-                  className="btn btn-primary"
-                  style={{ background: color }}
-                >
-                  🚀 Unirme al desafío
-                </button>
-              )
-            )}
-          </div>
 
-          {/* Dates card */}
-          <div className="card">
-            <div className="card-title">Fechas</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.25rem' }}>
-                  INICIO
+                {/* Progress */}
+                <div className="mb-6">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-bold text-on-surface">Progreso</span>
+                    <span className="text-sm text-on-surface-variant">
+                      {data.inscrito ? `${progreso} / ${data.meta_valor} ${unidad}` : 'No inscrito'}
+                    </span>
+                  </div>
+                  <div className="h-3 bg-surface-container-high rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${color}, ${color}88)` }}
+                    />
+                  </div>
                 </div>
-                <div style={{ fontWeight: 600, color: 'var(--gray-800)' }}>{fmt(data.fecha_inicio)}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.25rem' }}>
-                  FIN
-                </div>
-                <div style={{ fontWeight: 600, color: dias <= 3 ? '#ef4444' : 'var(--gray-800)' }}>
-                  {fmt(data.fecha_fin)}
-                </div>
+
+                {/* CTA */}
+                {data.activo && (
+                  data.inscrito ? (
+                    <div className="flex gap-3">
+                      <button
+                        onClick={handleDesistir}
+                        className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-bold text-sm transition-all active:scale-95 bg-surface-container-high text-on-surface-variant"
+                      >
+                        <span className="material-symbols-outlined text-lg">logout</span>
+                        Retirarme
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleInscribirse}
+                      className="flex items-center justify-center gap-2 w-full py-3.5 rounded-lg font-bold text-sm transition-all active:scale-95 shadow-lg text-white"
+                      style={{ background: color }}
+                    >
+                      <span className="material-symbols-outlined">celebration</span>
+                      Unirme al desafío
+                    </button>
+                  )
+                )}
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* RIGHT — tips */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div className="card">
-            <div className="card-title">💡 Consejos</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {[
-                'Fotografía el material con buena iluminación para una validación IA más rápida.',
-                'Asegúrate de estar en un punto de reciclaje verificado para que el GPS valide tu registro.',
-                'Completa el desafío antes de la fecha límite para obtener los puntos bonus.',
-                'Invita amigos a sumarse y compite juntos en el ranking del desafío.',
-              ].map((tip, i) => (
-                <div key={i} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-                  <div style={{
-                    width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
-                    background: color + '18', display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color
-                  }}>{i + 1}</div>
-                  <p style={{ fontSize: '0.875rem', color: 'var(--gray-500)', margin: 0, lineHeight: 1.6 }}>{tip}</p>
+            {/* Dates card */}
+            <div className="bg-surface-container-lowest rounded-lg p-6 shadow-xl shadow-on-surface/5 border border-outline-variant/10">
+              <div className="font-headline font-bold text-base mb-4 flex items-center gap-2">
+                <span className="material-symbols-outlined text-lg text-primary">calendar_month</span>
+                Fechas
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 rounded-lg bg-surface-container-low border border-outline-variant/20">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1">INICIO</div>
+                  <div className="font-semibold text-sm text-on-surface">{fmt(data.fecha_inicio)}</div>
                 </div>
-              ))}
+                <div className="p-4 rounded-lg bg-surface-container-low border border-outline-variant/20">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1">FIN</div>
+                  <div className="font-semibold text-sm text-on-surface">{fmt(data.fecha_fin)}</div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="card" style={{ background: color + '10', border: `1px solid ${color}30` }}>
-            <div style={{ textAlign: 'center', padding: '0.5rem 0' }}>
-              <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>🏆</div>
-              <div style={{ fontWeight: 700, fontSize: '1.25rem', color, marginBottom: '0.25rem' }}>+{data.puntos} pts</div>
-              <div style={{ fontSize: '0.875rem', color: 'var(--gray-500)' }}>al completar este desafío</div>
+          {/* RIGHT — sidebar */}
+          <div className="lg:col-span-5 space-y-6">
+            <div className="bg-surface-container-lowest rounded-lg p-6 shadow-xl shadow-on-surface/5 border border-outline-variant/10">
+              <div className="font-headline font-bold text-base mb-4 flex items-center gap-2">
+                <span className="material-symbols-outlined text-lg text-secondary">lightbulb</span>
+                Consejos
+              </div>
+              <div className="space-y-4">
+                {[
+                  { icon: 'camera', text: 'Fotografía el material con buena iluminación para una validación IA más rápida.' },
+                  { icon: 'location_on', text: 'Asegúrate de estar en un punto de reciclaje verificado para que el GPS valide tu registro.' },
+                  { icon: 'flag', text: 'Completa el desafío antes de la fecha límite para obtener los puntos bonus.' },
+                  { icon: 'group_add', text: 'Invita amigos a sumarse y compite juntos en el ranking del desafío.' },
+                ].map((tip, i) => (
+                  <div key={i} className="flex gap-3 items-start">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: color + '18' }}>
+                      <span className="material-symbols-outlined text-base" style={{ color, fontVariationSettings: '"FILL" 1' }}>{tip.icon}</span>
+                    </div>
+                    <p className="text-sm text-on-surface-variant leading-relaxed">{tip.text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-lg p-6 text-center border bg-surface-container-lowest shadow-xl shadow-on-surface/5 border-outline-variant/10">
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3" style={{ background: color + '20' }}>
+                <span className="material-symbols-outlined text-3xl" style={{ color, fontVariationSettings: '"FILL" 1' }}>workspace_premium</span>
+              </div>
+              <div className="font-headline text-2xl font-extrabold tracking-tight mb-1" style={{ color }}>+{data.puntos} pts</div>
+              <p className="text-sm text-on-surface-variant">al completar este desafío</p>
             </div>
           </div>
         </div>

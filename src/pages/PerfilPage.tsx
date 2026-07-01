@@ -4,15 +4,6 @@ import { userService } from '../services/userService';
 import { useNotification } from '../hooks/useNotification';
 import { formatFecha } from '../utils/formatters';
 
-const INSIGNIAS = [
-  { icon: '🌿', nombre: 'Guerrero del Plástico', desbloqueada: true },
-  { icon: '👥', nombre: 'Núcleo Comunitario',    desbloqueada: true },
-  { icon: '📅', nombre: 'Racha de 7 Días',       desbloqueada: true },
-  { icon: '📋', nombre: 'Club 100 Registros',    desbloqueada: false },
-  { icon: '🏅', nombre: 'Élite del Distrito',    desbloqueada: false },
-  { icon: '🌲', nombre: 'Guardián del Bosque',   desbloqueada: false },
-];
-
 type Tab = 'perfil' | 'seguridad';
 
 export default function PerfilPage() {
@@ -40,195 +31,196 @@ export default function PerfilPage() {
 
   if (!usuario) return null;
 
-  const pctMeta = Math.min(Math.round((usuario.points / 5000) * 100), 100);
+  const ptsBaseNivel = (usuario.nivel - 1) * 2500;
+  const pctMeta = Math.min(Math.round(((usuario.points - ptsBaseNivel) / 2500) * 100), 100);
 
   return (
-    <div>
-      {/* Header card */}
-      <div className="card" style={{
-        background: 'linear-gradient(135deg, var(--green-800), var(--green-600))',
-        color: 'white', marginBottom: '1.5rem', padding: '2rem'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-          {/* Avatar */}
-          <div style={{
-            width: 80, height: 80, borderRadius: '50%',
-            background: 'rgba(255,255,255,0.2)',
-            border: '3px solid rgba(255,255,255,0.5)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '2rem', fontWeight: 700, flexShrink: 0
-          }}>
-            {usuario.profilePicture
-              ? <img src={usuario.profilePicture} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
-              : usuario.name.charAt(0).toUpperCase()
-            }
-          </div>
+    <>
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-primary-container floating-blob animate-pulse" />
+        <div className="absolute top-1/3 -right-48 w-[500px] h-[500px] rounded-full bg-secondary-container floating-blob" style={{ animationDelay: '2s' }} />
+        <div className="absolute -bottom-24 left-1/3 w-80 h-80 rounded-full bg-tertiary-container floating-blob" />
+      </div>
 
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '0.75rem', opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.25rem' }}>
-              CURADOR NIVEL {usuario.nivel}
+      <div className="relative z-10 max-w-4xl mx-auto space-y-8">
+        <section className="text-center lg:text-left">
+          <span className="inline-block bg-primary-container text-on-primary-container px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest mb-4">
+            Perfil de Curador
+          </span>
+          <h1 className="font-headline text-5xl md:text-7xl font-extrabold text-on-background leading-tight tracking-tight">
+            Mi <span className="text-primary">Perfil.</span>
+          </h1>
+          <p className="text-on-surface-variant text-lg max-w-2xl mt-4">
+            Administra tu información personal y configuración de seguridad.
+          </p>
+        </section>
+
+        <div className="relative overflow-hidden rounded-lg bg-gradient-to-r from-green-800 to-green-600 p-8 text-white">
+          <div className="flex items-center gap-6">
+            <div className="w-20 h-20 rounded-full bg-white/20 border-2 border-white/50 flex items-center justify-center text-3xl font-bold shrink-0">
+              {usuario.profilePicture ? (
+                <img src={usuario.profilePicture} alt="" className="w-full h-full rounded-full object-cover" />
+              ) : (
+                usuario.name.charAt(0).toUpperCase()
+              )}
             </div>
-            <h1 style={{ color: 'white', marginBottom: '0.25rem', fontSize: '1.75rem' }}>{usuario.name}</h1>
-            <div style={{ opacity: 0.75, fontSize: '0.875rem' }}>@{usuario.username} · {usuario.email}</div>
+            <div className="flex-1">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-white/70 mb-1">
+                CURADOR NIVEL {usuario.nivel}
+              </p>
+              <h2 className="text-3xl font-headline font-extrabold mb-1">{usuario.name}</h2>
+              <p className="text-white/80 text-sm">@{usuario.username} · {usuario.email}</p>
+            </div>
+            <div className="bg-white/15 border border-white/30 rounded-full px-5 py-3 text-center shrink-0">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-white/70">Puntos</p>
+              <p className="text-3xl font-headline font-extrabold">{usuario.points.toLocaleString()}</p>
+            </div>
           </div>
-
-          {/* Points pill */}
-          <div style={{
-            background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)',
-            borderRadius: 999, padding: '0.5rem 1.25rem', textAlign: 'center'
-          }}>
-            <div style={{ fontSize: '0.7rem', opacity: 0.75, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Puntos</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>
-              {usuario.points.toLocaleString()}
+          <div className="mt-6">
+            <div className="flex justify-between text-sm text-white/80 mb-1">
+              <span>Meta al siguiente nivel</span>
+              <span>{pctMeta}%</span>
+            </div>
+            <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+              <div className="h-full bg-green-300 rounded-full transition-all" style={{ width: `${pctMeta}%` }} />
             </div>
           </div>
         </div>
 
-        {/* Progress to next level */}
-        <div style={{ marginTop: '1.5rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', opacity: 0.8, marginBottom: '0.375rem' }}>
-            <span>Meta al siguiente nivel</span>
-            <span>{pctMeta}%</span>
-          </div>
-          <div style={{ height: 8, background: 'rgba(255,255,255,0.2)', borderRadius: 999 }}>
-            <div style={{ height: '100%', width: `${pctMeta}%`, background: '#86efac', borderRadius: 999, transition: 'width 0.5s' }} />
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { icon: 'recycling', value: usuario.reciclajes, label: 'Reciclajes' },
+            { icon: 'local_fire_department', value: `${usuario.rachaDias}d`, label: 'Racha actual' },
+            { icon: 'exposure', value: `x${usuario.multiplier}`, label: 'Multiplicador' },
+            { icon: 'calendar_month', value: formatFecha(usuario.fechaRegistro).split(' ')[0], label: 'Miembro desde' },
+          ].map(s => (
+            <div key={s.label} className="bg-surface-container-lowest p-5 rounded-lg shadow-sm border border-outline-variant/5 flex flex-col items-center text-center">
+              <span className="material-symbols-outlined text-2xl text-primary mb-2" style={{ fontVariationSettings: '"FILL" 1' }}>{s.icon}</span>
+              <p className="text-2xl font-headline font-extrabold text-on-surface">{s.value}</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mt-1">{s.label}</p>
+            </div>
+          ))}
         </div>
-      </div>
 
-      {/* Stats row */}
-      <div className="dashboard-stats-row" style={{ marginBottom: '1.5rem' }}>
-        {[
-          { emoji: '♻️', value: usuario.reciclajes, label: 'Reciclajes' },
-          { emoji: '🔥', value: `${usuario.rachaDias}d`, label: 'Racha actual' },
-          { emoji: '✖', value: `x${usuario.multiplier}`, label: 'Multiplicador' },
-          { emoji: '📅', value: formatFecha(usuario.fechaRegistro).split(' ')[0], label: 'Miembro desde' },
-        ].map(s => (
-          <div key={s.label} className="stat-card">
-            <span className="stat-emoji">{s.emoji}</span>
-            <span className="stat-value" style={{ fontSize: '1.25rem' }}>{s.value}</span>
-            <span className="stat-label">{s.label}</span>
+        <div className="flex items-center gap-1 bg-surface-container-low rounded-full p-1 w-fit">
+          {(['perfil', 'seguridad'] as Tab[]).map(t => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
+                tab === t
+                  ? 'bg-white text-on-surface shadow-sm'
+                  : 'text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              {t === 'perfil' ? 'Información Personal' : 'Seguridad'}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'perfil' && (
+          <div className="bg-surface-container-lowest p-8 rounded-lg shadow-sm border border-outline-variant/5 space-y-6">
+            <h3 className="font-headline text-xl font-bold mb-6">Información Personal</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1 ml-1" htmlFor="p-name">
+                  Nombre completo
+                </label>
+                <input
+                  id="p-name"
+                  type="text"
+                  value={editName}
+                  onChange={e => setEditName(e.target.value)}
+                  className="w-full px-4 py-3 bg-surface-container-low border-0 border-b-2 border-outline-variant/20 focus:border-secondary focus:ring-0 rounded-t-lg transition-colors font-bold"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1 ml-1" htmlFor="p-email">
+                  Correo electrónico
+                </label>
+                <input
+                  id="p-email"
+                  type="email"
+                  value={usuario.email}
+                  readOnly
+                  className="w-full px-4 py-3 bg-surface-container-low border-0 border-b-2 border-outline-variant/20 rounded-t-lg transition-colors font-bold opacity-60 cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1 ml-1" htmlFor="p-username">
+                  Usuario
+                </label>
+                <input
+                  id="p-username"
+                  type="text"
+                  value={usuario.username}
+                  readOnly
+                  className="w-full px-4 py-3 bg-surface-container-low border-0 border-b-2 border-outline-variant/20 rounded-t-lg transition-colors font-bold opacity-60 cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1 ml-1" htmlFor="p-location">
+                  Distrito
+                </label>
+                <input
+                  id="p-location"
+                  type="text"
+                  value={editLocation}
+                  onChange={e => setEditLocation(e.target.value)}
+                  placeholder="Ej. San Isidro"
+                  className="w-full px-4 py-3 bg-surface-container-low border-0 border-b-2 border-outline-variant/20 focus:border-secondary focus:ring-0 rounded-t-lg transition-colors font-bold"
+                />
+              </div>
+            </div>
+            <button
+              className="bg-primary text-white px-6 py-3 rounded-lg font-bold text-sm hover:brightness-110 transition-all active:scale-95"
+              onClick={() => notify('success', 'Perfil actualizado.')}
+            >
+              Guardar cambios
+            </button>
           </div>
-        ))}
-      </div>
+        )}
 
-      <div className="ranking-layout">
-        {/* LEFT — tabs */}
-        <div>
-          {/* Tab switcher */}
-          <div style={{ display: 'flex', gap: '0.25rem', background: 'var(--gray-100)', borderRadius: 999, padding: '0.25rem', marginBottom: '1rem', width: 'fit-content' }}>
-            {(['perfil', 'seguridad'] as Tab[]).map(t => (
+        {tab === 'seguridad' && (
+          <div className="bg-surface-container-lowest p-8 rounded-lg shadow-sm border border-outline-variant/5 space-y-6">
+            <h3 className="font-headline text-xl font-bold mb-6">Seguridad</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1 ml-1">Contraseña actual</label>
+                <input type="password" placeholder="••••••••" className="w-full px-4 py-3 bg-surface-container-low border-0 border-b-2 border-outline-variant/20 focus:border-secondary focus:ring-0 rounded-t-lg transition-colors font-bold" />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1 ml-1">Nueva contraseña</label>
+                <input type="password" placeholder="••••••••" className="w-full px-4 py-3 bg-surface-container-low border-0 border-b-2 border-outline-variant/20 focus:border-secondary focus:ring-0 rounded-t-lg transition-colors font-bold" />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1 ml-1">Confirmar nueva contraseña</label>
+                <input type="password" placeholder="••••••••" className="w-full px-4 py-3 bg-surface-container-low border-0 border-b-2 border-outline-variant/20 focus:border-secondary focus:ring-0 rounded-t-lg transition-colors font-bold" />
+              </div>
+            </div>
+            <button
+              className="bg-primary text-white px-6 py-3 rounded-lg font-bold text-sm hover:brightness-110 transition-all active:scale-95"
+              onClick={() => notify('success', 'Contraseña actualizada.')}
+            >
+              Actualizar contraseña
+            </button>
+
+            <hr className="border-outline-variant/20 my-6" />
+
+            <div className="space-y-4">
+              <p className="text-sm text-on-surface-variant">Una vez que elimines tu cuenta, no hay forma de recuperarla. Por favor, asegúrate antes de continuar.</p>
               <button
-                key={t}
-                onClick={() => setTab(t)}
-                style={{
-                  padding: '0.375rem 1.25rem', borderRadius: 999, border: 'none',
-                  background: tab === t ? 'white' : 'transparent',
-                  color: tab === t ? 'var(--gray-800)' : 'var(--gray-500)',
-                  fontWeight: tab === t ? 600 : 400,
-                  cursor: 'pointer', fontSize: '0.875rem',
-                  boxShadow: tab === t ? 'var(--shadow-sm)' : 'none',
-                  textTransform: 'capitalize', transition: 'all 0.2s'
-                }}
-              >{t}</button>
-            ))}
-          </div>
-
-          {tab === 'perfil' && (
-            <div className="card">
-              <div className="card-title">Información Personal</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div className="form-field" style={{ marginBottom: 0 }}>
-                  <label className="form-label-upper" htmlFor="p-name">Nombre completo</label>
-                  <input id="p-name" type="text" value={editName} onChange={e => setEditName(e.target.value)} />
-                </div>
-                <div className="form-field" style={{ marginBottom: 0 }}>
-                  <label className="form-label-upper" htmlFor="p-email">Correo electrónico</label>
-                  <input id="p-email" type="email" value={usuario.email} readOnly style={{ opacity: 0.6, cursor: 'not-allowed' }} />
-                </div>
-                <div className="form-field" style={{ marginBottom: 0 }}>
-                  <label className="form-label-upper" htmlFor="p-username">Usuario</label>
-                  <input id="p-username" type="text" value={usuario.username} readOnly style={{ opacity: 0.6, cursor: 'not-allowed' }} />
-                </div>
-                <div className="form-field" style={{ marginBottom: 0 }}>
-                  <label className="form-label-upper" htmlFor="p-location">Distrito</label>
-                  <input id="p-location" type="text" value={editLocation} onChange={e => setEditLocation(e.target.value)} placeholder="Ej. San Isidro" />
-                </div>
-                <button
-                  className="btn btn-primary"
-                  onClick={() => notify('success', 'Perfil actualizado.')}
-                >
-                  Guardar cambios
-                </button>
-              </div>
-            </div>
-          )}
-
-          {tab === 'seguridad' && (
-            <div className="card">
-              <div className="card-title">Seguridad</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div className="form-field" style={{ marginBottom: 0 }}>
-                  <label className="form-label-upper">Contraseña actual</label>
-                  <input type="password" placeholder="••••••••" />
-                </div>
-                <div className="form-field" style={{ marginBottom: 0 }}>
-                  <label className="form-label-upper">Nueva contraseña</label>
-                  <input type="password" placeholder="••••••••" />
-                </div>
-                <div className="form-field" style={{ marginBottom: 0 }}>
-                  <label className="form-label-upper">Confirmar nueva contraseña</label>
-                  <input type="password" placeholder="••••••••" />
-                </div>
-                <button className="btn btn-primary" onClick={() => notify('success', 'Contraseña actualizada.')}>
-                  Actualizar contraseña
-                </button>
-
-                <hr style={{ border: 'none', borderTop: '1px solid var(--gray-200)', margin: '0.5rem 0' }} />
-
-                <button
-                  className="btn"
-                  style={{ background: 'var(--red-100)', color: 'var(--red-600)', fontWeight: 700 }}
-                  onClick={handleDeleteAccount}
-                  disabled={isDeleting}
-                >
-                  {isDeleting ? 'Eliminando...' : '🗑 Eliminar cuenta permanentemente'}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* RIGHT — Insignias */}
-        <div>
-          <div className="card">
-            <div className="card-title">Mis Insignias</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {INSIGNIAS.map(ins => (
-                <div key={ins.nombre} style={{
-                  display: 'flex', alignItems: 'center', gap: '0.875rem',
-                  padding: '0.75rem', borderRadius: 'var(--radius)',
-                  background: ins.desbloqueada ? 'var(--green-50)' : 'var(--gray-50)',
-                  border: `1px solid ${ins.desbloqueada ? 'var(--green-200)' : 'var(--gray-200)'}`,
-                  opacity: ins.desbloqueada ? 1 : 0.55
-                }}>
-                  <div style={{
-                    width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
-                    background: ins.desbloqueada ? 'var(--green-100)' : 'var(--gray-200)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem'
-                  }}>{ins.icon}</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{ins.nombre}</div>
-                  </div>
-                  <span className={ins.desbloqueada ? 'badge-ok' : 'badge-warning'} style={{ fontSize: '0.65rem' }}>
-                    {ins.desbloqueada ? '✓' : '🔒'}
-                  </span>
-                </div>
-              ))}
+                className="bg-error text-white px-6 py-3 rounded-lg font-bold text-sm hover:brightness-110 transition-all active:scale-95 flex items-center gap-2"
+                onClick={handleDeleteAccount}
+                disabled={isDeleting}
+              >
+                <span className="material-symbols-outlined text-base">delete_forever</span>
+                {isDeleting ? 'Eliminando...' : 'Eliminar cuenta permanentemente'}
+              </button>
             </div>
           </div>
-        </div>
+        )}
       </div>
-    </div>
+    </>
   );
 }

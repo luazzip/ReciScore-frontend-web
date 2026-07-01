@@ -10,8 +10,11 @@ export const desafioService = {
     const { data } = await axiosClient.get<Desafio[]>(`/desafios/usuario/${userId}`, { signal });
     return data;
   },
-  async getById(id: number, signal?: AbortSignal): Promise<Desafio> {
-    const { data } = await axiosClient.get<Desafio>(`/desafios/${id}`, { signal });
+  async getById(id: number, signal?: AbortSignal, userId?: number): Promise<Desafio> {
+    const { data } = await axiosClient.get<Desafio>(`/desafios/${id}`, {
+      signal,
+      params: userId ? { userId } : undefined,
+    });
     return data;
   },
   async create(payload: Omit<Desafio, 'id' | 'activo'>): Promise<Desafio> {

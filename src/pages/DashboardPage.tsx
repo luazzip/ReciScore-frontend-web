@@ -5,7 +5,8 @@ import { desafioService } from '../services/desafioService';
 import { reciclajeService } from '../services/reciclajeService';
 import { rankingService } from '../services/rankingService';
 import { mapaService } from '../services/mapaService';
-import { formatPeso, formatFecha } from '../utils/formatters';
+import { configService } from '../services/configService';
+import { formatPeso } from '../utils/formatters';
 import Spinner from '../components/common/Spinner';
 
 const materialIcons: Record<string, string> = {
@@ -30,13 +31,20 @@ export default function DashboardPage() {
   const { usuario, isLoading: authLoading } = useAuth();
 
   const { data: desafios, isLoading: desafiosLoading } = useFetch(
-    (signal) => desafioService.getActivos(signal),
-    []
+    (signal) => usuario
+      ? desafioService.getActivosConInscripcion(usuario.id, signal)
+      : desafioService.getActivos(signal),
+    [usuario?.id]
   );
 
   const { data: historial } = useFetch(
     (signal) => usuario ? reciclajeService.getHistorial(usuario.id, { page: 0, size: 5 }, signal) : Promise.resolve([]),
     [usuario?.id]
+  );
+
+  const { data: pesoConfig } = useFetch<Record<string, number>>(
+    (signal) => configService.getPesosPorTamano(signal),
+    []
   );
 
   if (authLoading) return <Spinner fullScreen label="Cargando..." />;
@@ -55,18 +63,19 @@ export default function DashboardPage() {
   const displayChallenges = desafios?.slice(0, 2) ?? [];
   const recentActivity = historial?.slice(0, 3) ?? [];
 
-  const PESO_POR_TAMANO: Record<string, number> = {
-    PEQUENO: 0.8,
-    MEDIANO: 2.4,
-    GRANDE: 5.2,
-  };
-  const totalPeso = (historial ?? []).reduce(
+  const PESO_POR_TAMANO = pesoConfig ?? {};
+  const pesoReportes = (historial ?? []).reduce(
     (acc, r) => acc + (PESO_POR_TAMANO[r.tamanoObjeto] ?? 0) * r.numeroArticulos,
     0
   );
+  const pesoDesafios = (desafios ?? []).reduce(
+    (acc, d) => acc + (d.categoria === 'RECICLAJE' ? (d.progresoActual ?? 0) : 0),
+    0
+  );
+  const totalPeso = pesoReportes + pesoDesafios;
 
-  const { data: reportesZona } = useFetch(
-    (signal) => mapaService.getReportesZona(signal),
+  const { data: puntos } = useFetch(
+    (signal) => mapaService.getPuntos(signal),
     []
   );
 
@@ -139,10 +148,10 @@ export default function DashboardPage() {
                   <div className="space-y-2">
                     <div className={`flex justify-between text-xs font-bold ${i === 1 ? 'text-secondary' : 'text-primary'}`}>
                       <span>Progreso</span>
-                      <span>0/{d.meta_valor}</span>
+                      <span>{d.progresoActual ?? 0}/{d.meta_valor}</span>
                     </div>
                     <div className="h-2 bg-surface-container-high rounded-full overflow-hidden">
-                      <div className={`h-full ${i === 1 ? 'bg-secondary' : 'bg-primary'} shadow-[inset_0_0_8px_rgba(255,255,255,0.4)]`} style={{ width: '0%' }} />
+                      <div className={`h-full ${i === 1 ? 'bg-secondary' : 'bg-primary'} shadow-[inset_0_0_8px_rgba(255,255,255,0.4)]`} style={{ width: `${Math.min(100, ((d.progresoActual ?? 0) / d.meta_valor) * 100)}%` }} />
                     </div>
                   </div>
                 </div>
@@ -150,35 +159,31 @@ export default function DashboardPage() {
             )}
 
             <div className="md:col-span-2 bg-gradient-to-br from-secondary to-secondary-dim p-6 rounded-lg relative overflow-hidden">
+
+
               <div className="relative z-10">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-headline font-bold text-lg text-white">Reportes de Zona</h3>
+                  <h3 className="font-headline font-bold text-lg text-white">Reportes de usuarios</h3>
                   <Link to="/mapa" className="text-white/80 font-bold text-sm hover:underline">Ir al mapa</Link>
                 </div>
-                {!reportesZona || reportesZona.length === 0 ? (
-                  <p className="text-white/70 text-sm">No hay reportes de zona aún.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {reportesZona.slice(0, 3).map((r) => (
-                      <div key={r.id} className="flex items-center gap-3 p-3 rounded-lg bg-white/10">
-                        <span className="material-symbols-outlined text-white/80">
-                          {r.procesado ? 'check_circle' : 'warning'}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-white truncate">
-                            {r.descripcion || 'Zona reportada'}
-                          </p>
-                          <p className="text-xs text-white/60">
-                            {r.username} · {formatFecha(r.fecha)}
-                          </p>
+                {(() => {
+                  const zonasSucias = (puntos ?? []).filter(p => p.tipo === 'ZONA_SUCIA');
+                  return zonasSucias.length === 0 ? (
+                    <p className="text-white/70 text-sm">No hay zonas reportadas aún. Al alcanzar 20 reportes en una misma ubicación, aparecerá aquí.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {zonasSucias.slice(0, 4).map((p) => (
+                        <div key={p.id} className="flex items-center gap-3 p-3 rounded-lg bg-white/10">
+                          <span className="material-symbols-outlined text-white/80">warning</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-white truncate">{p.nombre}</p>
+                            <p className="text-xs text-white/60">{p.latitude.toFixed(4)}, {p.longitude.toFixed(4)}</p>
+                          </div>
                         </div>
-                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${r.procesado ? 'bg-green-200 text-green-800' : 'bg-amber-200 text-amber-800'}`}>
-                          {r.procesado ? 'Procesado' : 'Pendiente'}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  );
+                })()}
                 <span className="material-symbols-outlined absolute -bottom-6 -right-6 text-white/10 text-[120px] pointer-events-none">location_on</span>
               </div>
             </div>

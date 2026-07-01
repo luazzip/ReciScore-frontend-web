@@ -4,6 +4,7 @@ export interface PuntoMapa {
   latitude: number;
   longitude: number;
   tipo: 'ACOPIO_OFICIAL' | 'ZONA_SUCIA';
+  servicios?: Record<string, boolean>;
 }
 
 export interface ReporteZona {

@@ -107,7 +107,7 @@ export default function HistorialPage() {
           Impacto de Actividad
         </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div className="bg-primary bg-[linear-gradient(135deg,#176a21,#9df197)] p-6 rounded-lg text-on-primary shadow-xl shadow-primary/10 flex flex-col justify-between h-48 relative overflow-hidden">
             <span className="material-symbols-outlined opacity-20 absolute -right-4 -bottom-4 text-9xl">eco</span>
             <div>
@@ -121,6 +121,7 @@ export default function HistorialPage() {
 
           <ImpactCard label="Plástico" cat="PLASTICO" total={totales.PLASTICO} totalGlobal={totales.total} />
           <ImpactCard label="Papel" cat="PAPEL" total={totales.PAPEL} totalGlobal={totales.total} />
+          <ImpactCard label="Vidrio" cat="VIDRIO" total={totales.VIDRIO} totalGlobal={totales.total} />
           <ImpactCard label="Metal" cat="METAL" total={totales.METAL} totalGlobal={totales.total} />
         </div>
       </section>

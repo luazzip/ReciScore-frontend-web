@@ -56,7 +56,7 @@ export default function DesafiosList() {
       {data.map((d) => (
         <DesafioCard
           key={d.id}
-          usuarioDesafio={{ desafio: d, progresoActual: 0, completado: false }}
+          usuarioDesafio={{ desafio: d, progresoActual: d.progresoActual ?? 0, completado: d.completado ?? false }}
           inscrito={inscritos.has(d.id)}
           onInscribirse={handleInscribirse}
           onDesistir={handleDesistir}

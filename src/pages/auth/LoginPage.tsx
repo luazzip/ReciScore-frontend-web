@@ -43,8 +43,8 @@ export default function LoginPage() {
                     <span className="material-symbols-outlined text-on-tertiary-fixed font-bold text-lg">workspace_premium</span>
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Comunidad Global</p>
-                    <p className="text-base font-display font-bold text-on-surface">+150K Eco-Líderes</p>
+                    <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">únete</p>
+                    <p className="text-base font-display font-bold text-on-surface">Conviértete en Eco-Líder</p>
                   </div>
                 </div>
                 <div className="flex -space-x-2">

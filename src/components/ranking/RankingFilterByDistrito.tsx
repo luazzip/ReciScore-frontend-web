@@ -3,14 +3,13 @@ import { useMemo } from 'react';
 interface RankingFilterProps {
   value: string;
   onChange: (distrito: string) => void;
+  distritos: string[];
 }
 
-const DISTRITOS = ['Todos', 'Miraflores', 'San Isidro', 'Surco', 'San Borja', 'La Molina', 'Barranco', 'Jesús María', 'Pueblo Libre', 'San Miguel'];
-
-export default function RankingFilterByDistrito({ value, onChange }: RankingFilterProps) {
+export default function RankingFilterByDistrito({ value, onChange, distritos }: RankingFilterProps) {
   const options = useMemo(
-    () => DISTRITOS.map((d) => <option key={d} value={d}>{d}</option>),
-    []
+    () => distritos.map((d) => <option key={d} value={d}>{d}</option>),
+    [distritos]
   );
 
   return (

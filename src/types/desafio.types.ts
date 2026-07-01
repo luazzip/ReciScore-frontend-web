@@ -9,6 +9,8 @@ export interface Desafio {
   fecha_fin: string;
   activo: boolean;
   inscrito?: boolean;
+  progresoActual?: number;
+  completado?: boolean;
 }
 
 export interface UsuarioDesafio {

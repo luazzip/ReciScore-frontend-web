@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 
 const navItems = [
@@ -20,7 +20,7 @@ export default function Sidebar() {
       </div>
 
       {usuario && (
-        <div className="flex items-center gap-4 px-4 mb-10">
+        <Link to="/perfil" className="flex items-center gap-4 px-4 mb-10 hover:bg-green-50 rounded-xl transition-colors">
           <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 bg-primary flex items-center justify-center text-on-primary font-bold text-lg">
             {usuario.profilePicture ? (
               <img src={usuario.profilePicture} alt={usuario.name} className="w-full h-full object-cover" />
@@ -32,7 +32,7 @@ export default function Sidebar() {
             <h3 className="font-headline font-bold text-on-surface text-sm truncate">{usuario.name}</h3>
             <p className="font-headline uppercase tracking-widest text-[10px] text-primary truncate">Curador Nivel {usuario.nivel}</p>
           </div>
-        </div>
+        </Link>
       )}
 
       <nav className="flex-1 space-y-2">
