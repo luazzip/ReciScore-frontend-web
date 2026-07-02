@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, Fragment } from 'react';
 import { useFetch } from '../hooks/useFetch';
 import { reciclajeService } from '../services/reciclajeService';
 import { useAuth } from '../hooks/useAuth';
@@ -70,6 +70,7 @@ const PAGE_SIZE = 10;
 export default function HistorialPage() {
   const { usuario } = useAuth();
   const [page, setPage] = useState(0);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const { data, isLoading, error, refetch } = useFetch(
     (signal) => reciclajeService.getHistorial(usuario!.id, { page, size: PAGE_SIZE }, signal),
@@ -83,9 +84,10 @@ export default function HistorialPage() {
       const cat = r.materialCategoria?.toUpperCase() ?? 'OTRO';
       acc[cat] = (acc[cat] ?? 0) + r.numeroArticulos;
       acc.total += r.numeroArticulos;
+      acc.pesoTotal += r.pesoTotal ?? 0;
       return acc;
     },
-    { total: 0, PLASTICO: 0, PAPEL: 0, VIDRIO: 0, METAL: 0 } as Record<string, number>
+    { total: 0, pesoTotal: 0, PLASTICO: 0, PAPEL: 0, VIDRIO: 0, METAL: 0 } as Record<string, number>
   );
 
   return (
@@ -101,6 +103,7 @@ export default function HistorialPage() {
             <div>
               <p className="font-label text-xs uppercase tracking-widest opacity-80 mb-1">Impacto Total</p>
               <p className="font-headline text-4xl font-black">{totales.total} uds</p>
+              <p className="font-headline text-xl font-bold mt-1 opacity-90">{totales.pesoTotal.toFixed(3)} kg</p>
             </div>
           </div>
 
@@ -155,38 +158,71 @@ export default function HistorialPage() {
                     const cat = r.materialCategoria?.toUpperCase() ?? 'OTRO';
                     const cfg = MATERIAL_CONFIG[cat] ?? MATERIAL_CONFIG.OTRO;
                     const fmt = formatFecha(r.fecha);
+                    const isOpen = expandedId === r.numeroReporte;
 
                     return (
-                      <tr key={r.numeroReporte} className="group hover:bg-surface-container-low transition-colors duration-150">
-                        <td className="py-5 px-4">
-                          <p className="text-sm font-semibold">{fmt.date}</p>
-                          <p className="text-[10px] text-on-surface-variant">{fmt.time}</p>
-                        </td>
-                        <td className="py-5 px-4">
-                          <div className="flex items-center gap-2">
-                            <div className={`w-8 h-8 rounded-full ${cfg.bg} flex items-center justify-center`}>
-                              <span className={`material-symbols-outlined ${cfg.color} text-lg`}>{cfg.icon}</span>
+                      <Fragment key={r.numeroReporte}>
+                        <tr
+                          className="group hover:bg-surface-container-low transition-colors duration-150 cursor-pointer"
+                          onClick={() => setExpandedId(isOpen ? null : r.numeroReporte)}
+                        >
+                          <td className="py-5 px-4">
+                            <p className="text-sm font-semibold">{fmt.date}</p>
+                            <p className="text-[10px] text-on-surface-variant">{fmt.time}</p>
+                          </td>
+                          <td className="py-5 px-4">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-8 h-8 rounded-full ${cfg.bg} flex items-center justify-center`}>
+                                <span className={`material-symbols-outlined ${cfg.color} text-lg`}>{cfg.icon}</span>
+                              </div>
+                              <span className="text-sm font-medium">{r.materialNombre}</span>
                             </div>
-                            <span className="text-sm font-medium">{r.materialNombre}</span>
-                          </div>
-                        </td>
-                        <td className="py-5 px-4 text-sm font-medium">{r.numeroArticulos}</td>
-                        <td className="py-5 px-4">
-                          {r.validadoIa ? (
-                            <span className="text-sm font-bold text-primary">+{r.puntosGanados ?? 0}</span>
-                          ) : (
-                            <span className="text-sm font-bold text-on-surface-variant">Pendiente</span>
-                          )}
-                        </td>
-                        <td className="py-5 px-4">
-                          <StatusBadge validado={r.validadoIa} />
-                        </td>
-                        <td className="py-5 px-4 text-right">
-                          <span className="material-symbols-outlined text-on-surface-variant cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
-                            chevron_right
-                          </span>
-                        </td>
-                      </tr>
+                          </td>
+                          <td className="py-5 px-4 text-sm font-medium">{r.numeroArticulos}</td>
+                          <td className="py-5 px-4">
+                            {r.validadoIa ? (
+                              <span className="text-sm font-bold text-primary">+{r.puntosGanados ?? 0}</span>
+                            ) : (
+                              <span className="text-sm font-bold text-on-surface-variant">Pendiente</span>
+                            )}
+                          </td>
+                          <td className="py-5 px-4">
+                            <StatusBadge validado={r.validadoIa} />
+                          </td>
+                          <td className="py-5 px-4 text-right">
+                            <span className="material-symbols-outlined text-on-surface-variant transition-transform duration-200"
+                              style={{ transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>
+                              chevron_right
+                            </span>
+                          </td>
+                        </tr>
+                        {isOpen && (
+                          <tr className="bg-surface-container-low/40">
+                            <td colSpan={6} className="px-4 py-4">
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                <div className="flex flex-col gap-1">
+                                  <span className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant">Peso Total</span>
+                                  <span className="font-semibold">{r.pesoTotal ?? 0} kg</span>
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                  <span className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant">Puntos</span>
+                                  <span className="font-semibold">{r.puntosGanados ?? 0} pts</span>
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                  <span className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant">Confianza IA</span>
+                                  <span className="font-semibold">{(r.confianzaIa * 100).toFixed(0)}%</span>
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                  <span className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant">GPS</span>
+                                  <span className={`font-semibold ${r.gpsValidado ? 'text-primary' : 'text-red-500'}`}>
+                                    {r.gpsValidado ? 'Verificado' : 'No verificado'}
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
                     );
                   })}
                 </tbody>
