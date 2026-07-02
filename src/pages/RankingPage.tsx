@@ -1,8 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useFetch } from '../hooks/useFetch';
 import { rankingService } from '../services/rankingService';
-import { configService } from '../services/configService';
 import { useAuth } from '../hooks/useAuth';
 import RankingFilterByDistrito from '../components/ranking/RankingFilterByDistrito';
 import Skeleton from '../components/common/Skeleton';
@@ -47,24 +46,35 @@ function Avatar({ src, name, className = '' }: { src?: string | null; name: stri
 export default function RankingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { usuario } = useAuth();
-  const distrito = searchParams.get('distrito') ?? 'Todos';
+  const distrito = searchParams.get('distrito') ?? '';
 
-  const { data: distritos } = useFetch<string[]>(
-    (signal) => configService.getDistritos(signal),
+  const { data: dataGlobal, isLoading: globalLoading, error: globalError, refetch: refetchGlobal } = useFetch(
+    (signal) => rankingService.getGlobal(signal),
     []
   );
 
-  const { data, isLoading, error, refetch } = useFetch(
-    (signal) =>
-      distrito === 'Todos'
-        ? rankingService.getGlobal(signal)
-        : rankingService.getPorDistrito(distrito, signal),
+  const { data: dataFiltrado, isLoading: filtradoLoading, error: filtradoError } = useFetch(
+    (signal) => (distrito ? rankingService.getPorDistrito(distrito, signal) : Promise.resolve(null)),
     [distrito]
   );
 
+  const data = distrito ? dataFiltrado : dataGlobal;
+  const isLoading = distrito ? filtradoLoading : globalLoading;
+  const error = distrito ? filtradoError : globalError;
+  const refetch = refetchGlobal;
+
+  const [distritosLista, setDistritosLista] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (dataGlobal) {
+      const extraidos = [...new Set(dataGlobal.map(e => e.location).filter(Boolean) as string[])];
+      setDistritosLista(extraidos);
+    }
+  }, [dataGlobal]);
+
   const distritosRanking = useMemo(() => {
-    if (!data) return [];
-    const agrupado = data.reduce<Record<string, number>>((acc, e) => {
+    if (!dataGlobal) return [];
+    const agrupado = dataGlobal.reduce<Record<string, number>>((acc, e) => {
       const dist = e.location || 'Sin distrito';
       acc[dist] = (acc[dist] || 0) + e.points;
       return acc;
@@ -81,9 +91,10 @@ export default function RankingPage() {
       .map((d, i) => ({ ...d, pos: i + 1 }));
   }, [data, usuario]);
 
-  const ptsBaseNivel = usuario ? (usuario.nivel - 1) * 2500 : 0;
-  const pointsProgress = usuario ? Math.min(Math.round(((usuario.points - ptsBaseNivel) / 2500) * 100), 100) : 0;
-  const pointsToNext = usuario ? (usuario.nivel * 2500) - usuario.points : 2500;
+  const ptsBaseNivel = usuario ? usuario.nivel * (usuario.nivel - 1) * 50 : 0;
+  const intervaloNivel = usuario ? usuario.nivel * 100 : 100;
+  const pointsProgress = usuario ? Math.min(Math.round(((usuario.points - ptsBaseNivel) / intervaloNivel) * 100), 100) : 0;
+  const pointsToNext = usuario ? (usuario.nivel + 1) * usuario.nivel * 50 - usuario.points : 100;
 
   return (
     <div className="relative">
@@ -125,8 +136,8 @@ export default function RankingPage() {
                 <div className="mb-4">
                   <RankingFilterByDistrito
                     value={distrito}
-                    onChange={(d) => setSearchParams(d === 'Todos' ? {} : { distrito: d })}
-                    distritos={['Todos', ...(distritos ?? [])]}
+                    onChange={(d) => setSearchParams(d ? { distrito: d } : {})}
+                    distritos={distritosLista}
                   />
                 </div>
               </div>

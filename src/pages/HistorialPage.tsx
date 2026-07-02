@@ -88,18 +88,6 @@ export default function HistorialPage() {
     { total: 0, PLASTICO: 0, PAPEL: 0, VIDRIO: 0, METAL: 0 } as Record<string, number>
   );
 
-  const ahora = new Date();
-  const mesActual = reportes.filter(r => {
-    const d = new Date(r.fecha);
-    return d.getMonth() === ahora.getMonth() && d.getFullYear() === ahora.getFullYear();
-  }).reduce((acc, r) => acc + r.numeroArticulos, 0);
-  const mesAnterior = reportes.filter(r => {
-    const d = new Date(r.fecha);
-    const mesPasado = new Date(ahora.getFullYear(), ahora.getMonth() - 1, 1);
-    return d.getMonth() === mesPasado.getMonth() && d.getFullYear() === mesPasado.getFullYear();
-  }).reduce((acc, r) => acc + r.numeroArticulos, 0);
-  const crecimiento = mesAnterior > 0 ? Math.round(((mesActual - mesAnterior) / mesAnterior) * 100) : 0;
-
   return (
     <>
       <section className="mb-12">
@@ -114,9 +102,6 @@ export default function HistorialPage() {
               <p className="font-label text-xs uppercase tracking-widest opacity-80 mb-1">Impacto Total</p>
               <p className="font-headline text-4xl font-black">{totales.total} uds</p>
             </div>
-            <p className="text-xs font-medium">
-              {crecimiento >= 0 ? `+${crecimiento}%` : `${crecimiento}%`} desde el mes pasado
-            </p>
           </div>
 
           <ImpactCard label="Plástico" cat="PLASTICO" total={totales.PLASTICO} totalGlobal={totales.total} />
@@ -188,7 +173,7 @@ export default function HistorialPage() {
                         <td className="py-5 px-4 text-sm font-medium">{r.numeroArticulos}</td>
                         <td className="py-5 px-4">
                           {r.validadoIa ? (
-                            <span className="text-sm font-bold text-primary">+{r.numeroArticulos * 50}</span>
+                            <span className="text-sm font-bold text-primary">+{r.puntosGanados ?? 0}</span>
                           ) : (
                             <span className="text-sm font-bold text-on-surface-variant">Pendiente</span>
                           )}

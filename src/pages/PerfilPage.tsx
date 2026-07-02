@@ -84,8 +84,9 @@ export default function PerfilPage() {
 
   if (!usuario) return null;
 
-  const ptsBaseNivel = (usuario.nivel - 1) * 2500;
-  const pctMeta = Math.min(Math.round(((usuario.points - ptsBaseNivel) / 2500) * 100), 100);
+  const ptsBaseNivel = usuario.nivel * (usuario.nivel - 1) * 50;
+  const intervaloNivel = usuario.nivel * 100;
+  const pctMeta = Math.min(Math.round(((usuario.points - ptsBaseNivel) / intervaloNivel) * 100), 100);
 
   return (
     <>

@@ -16,13 +16,9 @@ export default function RankingFilterByDistrito({ value, onChange, distritos }: 
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      style={{
-        padding: '0.5rem 1rem', borderRadius: 999,
-        border: '1px solid var(--gray-200)', background: 'var(--gray-50)',
-        fontSize: '0.875rem', color: 'var(--gray-700)', cursor: 'pointer',
-        outline: 'none'
-      }}
+      className="px-4 py-2 rounded-full border border-outline-variant bg-surface-container-low text-on-surface text-sm cursor-pointer outline-none focus:ring-2 focus:ring-primary"
     >
+      <option value="">Filtrar por distrito</option>
       {options}
     </select>
   );

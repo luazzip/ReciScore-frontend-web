@@ -2,6 +2,13 @@ import axiosClient from '../api/axiosClient';
 import { tokenStorage } from '../utils/tokenStorage';
 import type { AuthResponse, LoginRequest, RegisterRequest, Usuario } from '../types/usuario.types';
 
+function recalcularNivel(user: Usuario): Usuario {
+  return {
+    ...user,
+    nivel: Math.floor((1 + Math.sqrt(1 + 2 * user.points / 25)) / 2),
+  };
+}
+
 function decodeToken(token: string): { sub: string; userId: number; role: string } {
   try {
     const payload = token.split('.')[1];
@@ -23,7 +30,7 @@ export const authService = {
     tokenStorage.setRefreshToken(data.refreshToken);
     const decoded = decodeToken(data.token);
     const usuario = await fetchUser(decoded.userId);
-    const usuarioConRol: Usuario = { ...usuario, role: decoded.role as Usuario['role'] };
+    const usuarioConRol = recalcularNivel({ ...usuario, role: decoded.role as Usuario['role'] });
     tokenStorage.setUser(usuarioConRol);
     return usuarioConRol;
   },
@@ -33,12 +40,13 @@ export const authService = {
     tokenStorage.setRefreshToken(data.refreshToken);
     const decoded = decodeToken(data.token);
     const usuario = await fetchUser(decoded.userId);
-    const usuarioConRol: Usuario = { ...usuario, role: decoded.role as Usuario['role'] };
+    const usuarioConRol = recalcularNivel({ ...usuario, role: decoded.role as Usuario['role'] });
     tokenStorage.setUser(usuarioConRol);
     return usuarioConRol;
   },
   restoreSession(): Usuario | null {
-    return tokenStorage.getUser<Usuario>();
+    const user = tokenStorage.getUser<Usuario>();
+    return user ? recalcularNivel(user) : null;
   },
   async changePassword(currentPassword: string, newPassword: string): Promise<void> {
     await axiosClient.post('/auth/change-password', { currentPassword, newPassword });

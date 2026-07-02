@@ -22,5 +22,7 @@ export interface ReporteReciclaje {
   confianzaIa: number;
   validadoIa: boolean;
   gpsValidado: boolean;
+  puntosGanados?: number;
+  pesoTotal?: number;
   fecha: string;
 }

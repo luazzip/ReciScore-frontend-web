@@ -5,7 +5,6 @@ import { desafioService } from '../services/desafioService';
 import { reciclajeService } from '../services/reciclajeService';
 import { rankingService } from '../services/rankingService';
 import { mapaService } from '../services/mapaService';
-import { configService } from '../services/configService';
 import { formatPeso } from '../utils/formatters';
 import Spinner from '../components/common/Spinner';
 
@@ -42,11 +41,6 @@ export default function DashboardPage() {
     [usuario?.id]
   );
 
-  const { data: pesoConfig } = useFetch<Record<string, number>>(
-    (signal) => configService.getPesosPorTamano(signal),
-    []
-  );
-
   const { data: puntos } = useFetch(
     (signal) => mapaService.getPuntos(signal),
     []
@@ -69,13 +63,15 @@ export default function DashboardPage() {
     );
   }
 
-  const pointsProgress = Math.min(Math.round((usuario.points / 5000) * 100), 100);
+  const ptsBaseNivel = usuario.nivel * (usuario.nivel - 1) * 50;
+  const intervaloNivel = usuario.nivel * 100;
+  const pointsProgress = Math.min(Math.round(((usuario.points - ptsBaseNivel) / intervaloNivel) * 100), 100);
+  const pointsToNext = (usuario.nivel + 1) * usuario.nivel * 50 - usuario.points;
   const displayChallenges = desafios?.slice(0, 2) ?? [];
   const recentActivity = historial?.slice(0, 3) ?? [];
 
-  const PESO_POR_TAMANO = pesoConfig ?? {};
   const pesoReportes = (historial ?? []).reduce(
-    (acc, r) => acc + (PESO_POR_TAMANO[r.tamanoObjeto] ?? 0) * r.numeroArticulos,
+    (acc, r) => acc + (r.pesoTotal ?? 0),
     0
   );
   const pesoDesafios = (desafios ?? []).reduce(
@@ -217,13 +213,14 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="mt-8 pt-6 border-t border-surface-container-high">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-sm font-bold">Meta Personal</span>
-                <span className="text-sm text-primary font-bold">{pointsProgress}%</span>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-bold">Nivel {usuario.nivel} → {usuario.nivel + 1}</span>
+                <span className="text-sm text-primary font-bold">{pointsToNext.toLocaleString()} pts</span>
               </div>
               <div className="h-3 bg-surface-container-high rounded-full overflow-hidden">
                 <div className="h-full bg-gradient-to-r from-primary to-inverse-primary" style={{ width: `${pointsProgress}%` }} />
               </div>
+              <p className="text-[10px] text-on-surface-variant mt-1 text-right">Faltan {pointsToNext.toLocaleString()} pts para subir de nivel</p>
             </div>
           </section>
 
@@ -241,7 +238,6 @@ export default function DashboardPage() {
                   const icon = materialIcons[cat] ?? ' Recycling';
                   const color = materialColors[cat] ?? 'bg-gray-100 text-gray-600';
                   const bgClass = i % 2 === 0 ? 'bg-surface-container-low' : 'bg-surface-container-lowest';
-                  const pesoKg = PESO_POR_TAMANO[r.tamanoObjeto] ?? 0;
                   return (
                     <div key={r.numeroReporte} className={`${bgClass} p-4 rounded-lg flex items-center gap-4 transition-transform hover:scale-[1.02]`}>
                       <div className={`w-10 h-10 rounded-full ${color} flex items-center justify-center`}>
@@ -249,9 +245,9 @@ export default function DashboardPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <h4 className="text-sm font-bold truncate">{r.materialNombre}</h4>
-                        <p className="text-xs text-on-surface-variant truncate">{r.numeroArticulos} ítems • {formatPeso(pesoKg)}</p>
+                        <p className="text-xs text-on-surface-variant truncate">{r.numeroArticulos} ítems</p>
                       </div>
-                      <span className="text-xs font-bold text-primary">+{r.numeroArticulos * 12} pts</span>
+                      <span className="text-xs font-bold text-primary">+{r.puntosGanados ?? 0} pts</span>
                     </div>
                   );
                 })
