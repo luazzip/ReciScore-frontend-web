@@ -115,19 +115,7 @@ export default function HistorialPage() {
       </section>
 
       <section className="bg-surface-container-lowest rounded-lg p-8 shadow-sm">
-        <div className="flex justify-between items-center mb-8">
-          <h3 className="font-headline text-xl font-bold tracking-tight">Depósitos Recientes</h3>
-          <div className="flex gap-3">
-            <button className="flex items-center gap-2 px-4 py-2 bg-surface-container-low rounded-full text-xs font-bold font-label transition-colors hover:bg-surface-container-high">
-              <span className="material-symbols-outlined text-sm">filter_list</span>
-              Filtrar
-            </button>
-            <button className="flex items-center gap-2 px-4 py-2 bg-surface-container-low rounded-full text-xs font-bold font-label transition-colors hover:bg-surface-container-high">
-              <span className="material-symbols-outlined text-sm">download</span>
-              Exportar
-            </button>
-          </div>
-        </div>
+          <h3 className="font-headline text-xl font-bold tracking-tight mb-8">Depósitos Recientes</h3>
 
         {isLoading && <Skeleton rows={5} />}
         {error && <ErrorMessage error={error} onRetry={refetch} />}
